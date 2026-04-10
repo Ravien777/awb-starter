@@ -1,0 +1,20 @@
+/* AWB – Transparent header */
+.awb-header--transparent {
+  transition:
+    background 0.3s ease,
+    backdrop-filter 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.awb-header--transparent.is-scrolled {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Switch text dark when solid */
+.awb-header--transparent.is-scrolled .wp-block-site-title a,
+.awb-header--transparent.is-scrolled .wp-block-navigation a {
+  color: #2e2e2a !important;
+}

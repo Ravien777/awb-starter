@@ -1,0 +1,92 @@
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary: #2d6a4f;
+  --primary-dark: #1f4d3a;
+  --primary-light: #52b788;
+  --primary-soft: #e9f5f0;
+  --secondary: #f4a261;
+  --text-dark: #0d1f1a;
+  --text-muted: #4b5e5a;
+  --gray-border: #e2e8f0;
+  --white: #ffffff;
+  --bg: #fafcfb;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "DM Sans", sans-serif;
+  background: var(--bg);
+  color: var(--text-dark);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.site-header {
+  position: sticky !important;
+  top: 0;
+  z-index: 100;
+  background: rgba(250, 252, 251, 0.82) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(45, 106, 79, 0.08) !important;
+  transition: box-shadow 0.3s ease !important;
+}
+.site-header.scrolled {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.07);
+}
+.site-header .header-image {
+  width: 132px !important;
+  padding: 0 16px !important;
+}
+.main-navigation,
+.main-navigation ul ul {
+  background-color: transparent !important;
+}
+.mobile-menu-control-wrapper .menu-toggle,
+.mobile-menu-control-wrapper .menu-toggle:hover,
+.mobile-menu-control-wrapper .menu-toggle:focus,
+.has-inline-mobile-toggle #site-navigation.toggled {
+  background-color: transparent !important;
+}
+.main-navigation li.menu-item > a {
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+  position: relative;
+  font-family: "DM Sans", sans-serif;
+}
+.main-navigation li.menu-item > a::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.main-navigation .main-nav ul li:hover > a,
+.main-navigation .main-nav ul li[class*="current-menu-"] > a {
+  color: var(--primary) !important;
+}
+.main-navigation .main-nav ul li:hover > a::after,
+.main-navigation .main-nav ul li[class*="current-menu-"] > a::after {
+  transform: scaleX(1) !important;
+}
+.inside-header {
+  padding: 0 !important;
+}

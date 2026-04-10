@@ -1,0 +1,80 @@
+<!--
+Title: CTA Banner
+Description: A simple call-to-action banner with a headline and button
+Post Types: page
+-->
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{"top":"72px","bottom":"72px","left":"40px","right":"40px"}}},"backgroundColor":"primary","layout":{"type":"constrained"}} -->
+<div
+  class="wp-block-group alignfull has-primary-background-color has-background"
+  style="
+    padding-top: 72px;
+    padding-bottom: 72px;
+    padding-left: 40px;
+    padding-right: 40px;
+  "
+>
+  <!-- wp:columns {"align":"wide","isStackedOnMobile":true,"style":{"spacing":{"blockGap":"40px"}}} -->
+  <div class="wp-block-columns alignwide">
+    <!-- Text side -->
+    <!-- wp:column {"width":"60%","style":{"spacing":{"padding":{"right":"20px"}}}} -->
+    <div class="wp-block-column" style="flex-basis: 60%; padding-right: 20px">
+      <!-- wp:heading {"level":2,"style":{"typography":{"fontSize":"clamp(1.6rem,3vw,2.2rem)","fontWeight":"700","lineHeight":"1.2"},"color":{"text":"#ffffff"},"spacing":{"margin":{"bottom":"16px"}}}} -->
+      <h2
+        class="wp-block-heading has-white-color has-text-color"
+        style="
+          font-size: clamp(1.6rem, 3vw, 2.2rem);
+          font-weight: 700;
+          line-height: 1.2;
+          margin-bottom: 16px;
+        "
+      >
+        Ready to get started? Let's talk.
+      </h2>
+      <!-- /wp:heading -->
+      <!-- wp:paragraph {"style":{"color":{"text":"rgba(255,255,255,0.8)"}}} -->
+      <p class="has-text-color" style="color: rgba(255, 255, 255, 0.8)">
+        A short sentence that removes the last bit of friction. Tell them what
+        happens when they click — a free call, a quote, a demo.
+      </p>
+      <!-- /wp:paragraph -->
+    </div>
+    <!-- /wp:column -->
+
+    <!-- Button side -->
+    <!-- wp:column {"width":"40%","style":{"spacing":{"padding":{"top":"8px"}},"layout":{"selfStretch":"fit","flexSize":null}}} -->
+    <div
+      class="wp-block-column"
+      style="
+        flex-basis: 40%;
+        padding-top: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      "
+    >
+      <!-- wp:buttons -->
+      <div class="wp-block-buttons">
+        <!-- wp:button {"backgroundColor":"white","textColor":"primary","style":{"typography":{"fontWeight":"700"},"border":{"radius":"4px"},"spacing":{"padding":{"top":"18px","bottom":"18px","left":"40px","right":"40px"}}}} -->
+        <div class="wp-block-button">
+          <a
+            class="wp-block-button__link has-white-background-color has-primary-color has-text-color has-background"
+            style="
+              border-radius: 4px;
+              font-weight: 700;
+              padding-top: 18px;
+              padding-bottom: 18px;
+              padding-left: 40px;
+              padding-right: 40px;
+            "
+            >Book a free call →</a
+          >
+        </div>
+        <!-- /wp:button -->
+      </div>
+      <!-- /wp:buttons -->
+    </div>
+    <!-- /wp:column -->
+  </div>
+  <!-- /wp:columns -->
+</div>
+<!-- /wp:group -->

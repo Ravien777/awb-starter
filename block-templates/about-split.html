@@ -1,0 +1,105 @@
+<!--
+Title: About Split
+Description: Two-column about section with text and image
+Categories: awb-sections
+-->
+<!-- wp:group {"align":"full","style":{"spacing":{"padding":{"top":"80px","bottom":"80px","left":"40px","right":"40px"}}},"backgroundColor":"white","layout":{"type":"constrained"}} -->
+<div
+  class="wp-block-group alignfull has-white-background-color has-background"
+  style="
+    padding-top: 80px;
+    padding-bottom: 80px;
+    padding-left: 40px;
+    padding-right: 40px;
+  "
+>
+  <!-- wp:columns {"align":"wide","isStackedOnMobile":true,"style":{"spacing":{"blockGap":"64px"}}} -->
+  <div class="wp-block-columns alignwide">
+    <!-- Image column -->
+    <!-- wp:column {"width":"50%"} -->
+    <div class="wp-block-column" style="flex-basis: 50%">
+      <!-- wp:image {"sizeSlug":"large","aspectRatio":"4/3","scale":"cover","style":{"border":{"radius":"8px"}}} -->
+      <figure class="wp-block-image size-large" style="border-radius: 8px">
+        <img
+          src="https://placehold.co/800x600/e8e8e5/6b6b66?text=Your+Image"
+          alt="About us"
+          style="aspect-ratio: 4/3; object-fit: cover"
+        />
+      </figure>
+      <!-- /wp:image -->
+    </div>
+    <!-- /wp:column -->
+
+    <!-- Text column -->
+    <!-- wp:column {"width":"50%","style":{"spacing":{"padding":{"top":"16px"}}}} -->
+    <div class="wp-block-column" style="flex-basis: 50%; padding-top: 16px">
+      <!-- wp:paragraph {"style":{"typography":{"fontSize":".8rem","fontWeight":"700","letterSpacing":".1em"},"color":{"text":"#c8922a"},"spacing":{"margin":{"bottom":"12px"}}}} -->
+      <p
+        class="has-text-color"
+        style="
+          font-size: 0.8rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          color: #c8922a;
+          margin-bottom: 12px;
+          text-transform: uppercase;
+        "
+      >
+        About us
+      </p>
+      <!-- /wp:paragraph -->
+
+      <!-- wp:heading {"level":2,"style":{"typography":{"fontSize":"clamp(1.6rem,3vw,2.4rem)","fontWeight":"700","lineHeight":"1.2"},"spacing":{"margin":{"bottom":"20px"}}}} -->
+      <h2
+        class="wp-block-heading"
+        style="
+          font-size: clamp(1.6rem, 3vw, 2.4rem);
+          font-weight: 700;
+          line-height: 1.2;
+          margin-bottom: 20px;
+        "
+      >
+        We do one thing and we do it really well
+      </h2>
+      <!-- /wp:heading -->
+
+      <!-- wp:paragraph {"style":{"color":{"text":"#6b6b66"},"spacing":{"margin":{"bottom":"16px"}}}} -->
+      <p class="has-text-color" style="color: #6b6b66; margin-bottom: 16px">
+        This is the first paragraph of your about section. Tell your story,
+        explain your approach, or describe what makes you different from
+        everyone else doing the same thing.
+      </p>
+      <!-- /wp:paragraph -->
+
+      <!-- wp:paragraph {"style":{"color":{"text":"#6b6b66"},"spacing":{"margin":{"bottom":"36px"}}}} -->
+      <p class="has-text-color" style="color: #6b6b66; margin-bottom: 36px">
+        A second paragraph if needed. Keep this section honest and human —
+        visitors connect with real stories, not corporate speak.
+      </p>
+      <!-- /wp:paragraph -->
+
+      <!-- wp:buttons -->
+      <div class="wp-block-buttons">
+        <!-- wp:button {"style":{"border":{"radius":"4px"},"spacing":{"padding":{"top":"14px","bottom":"14px","left":"28px","right":"28px"}}}} -->
+        <div class="wp-block-button">
+          <a
+            class="wp-block-button__link"
+            style="
+              border-radius: 4px;
+              padding-top: 14px;
+              padding-bottom: 14px;
+              padding-left: 28px;
+              padding-right: 28px;
+            "
+            >Meet the team →</a
+          >
+        </div>
+        <!-- /wp:button -->
+      </div>
+      <!-- /wp:buttons -->
+    </div>
+    <!-- /wp:column -->
+  </div>
+  <!-- /wp:columns -->
+</div>
+<!-- /wp:group -->
