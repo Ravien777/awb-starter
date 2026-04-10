@@ -35,8 +35,8 @@ class AWB_Settings
 
         add_submenu_page(
             'awb-starter',
-            __('Custom CSS & JS', 'awb-starter'),
-            __('Custom CSS & JS', 'awb-starter'),
+            __('Dashboard', 'awb-starter'),
+            __('Dashboard', 'awb-starter'),
             'manage_options',
             'awb-starter',
             [$this, 'render_settings_page']
@@ -65,7 +65,7 @@ class AWB_Settings
         }
 
         echo '<div class="wrap">';
-        echo '<h1>' . esc_html__('AWB – Custom CSS & JS', 'awb-starter') . '</h1>';
+        echo '<h1>' . esc_html__('AWB – Dashboard', 'awb-starter') . '</h1>';
         echo '<form method="post" action="options.php">';
         settings_fields('awb_starter_group');
         do_settings_sections('awb_starter_group');
