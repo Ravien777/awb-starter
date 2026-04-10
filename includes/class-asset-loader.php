@@ -47,6 +47,12 @@ class AWB_Asset_Loader
         $script_enqueued = $this->enqueue_script('awb-starter', 'assets/js/frontend.js');
 
         if ($style_enqueued) {
+            // Add design tokens as CSS custom properties
+            $tokens_css = $this->generate_design_tokens_css();
+            if ($tokens_css) {
+                wp_add_inline_style('awb-starter', $tokens_css);
+            }
+
             $custom_css = get_option('awb_custom_css', '');
             if ($custom_css) {
                 wp_add_inline_style('awb-starter', wp_strip_all_tags($custom_css));
@@ -86,6 +92,112 @@ class AWB_Asset_Loader
                 $this->enqueue_script('awb-pattern-' . $short_slug . '-script', $files['js'], ['awb-starter']);
             }
         }
+    }
+
+    private function generate_design_tokens_css(): string
+    {
+        $css = '';
+
+        // Generate @font-face declarations for custom fonts
+        $font_faces = $this->generate_font_faces_css();
+        if ($font_faces) {
+            $css .= $font_faces . "\n";
+        }
+
+        $tokens = [
+            // Colors
+            '--awb-color-primary'    => get_option('awb_token_color_primary', '#1a1a2e'),
+            '--awb-color-secondary'  => get_option('awb_token_color_secondary', '#16213e'),
+            '--awb-color-accent'     => get_option('awb_token_color_accent', '#e94560'),
+            '--awb-color-text'       => get_option('awb_token_color_text', '#1a1a1a'),
+            '--awb-color-bg'         => get_option('awb_token_color_bg', '#ffffff'),
+            '--awb-color-border'     => 'color-mix(in srgb, ' . get_option('awb_token_color_bg', '#ffffff') . ' 80%, ' . get_option('awb_token_color_text', '#1a1a1a') . ')',
+
+            // Typography
+            '--awb-font-heading'     => $this->get_font_stack('heading'),
+            '--awb-font-body'        => $this->get_font_stack('body'),
+            '--awb-font-mono'        => get_option('awb_token_font_mono', 'monospace'),
+
+            // Spacing
+            '--awb-space-xs'         => get_option('awb_token_space_xs', '0.25rem'),
+            '--awb-space-sm'         => get_option('awb_token_space_sm', '0.5rem'),
+            '--awb-space-md'         => get_option('awb_token_space_md', '1rem'),
+            '--awb-space-lg'         => get_option('awb_token_space_lg', '2rem'),
+            '--awb-space-xl'         => get_option('awb_token_space_xl', '4rem'),
+
+            // Borders & Radius
+            '--awb-radius-sm'        => get_option('awb_token_radius_sm', '4px'),
+            '--awb-radius-md'        => get_option('awb_token_radius_md', '8px'),
+            '--awb-radius-lg'        => get_option('awb_token_radius_lg', '16px'),
+        ];
+
+        $css .= ":root {\n";
+        foreach ($tokens as $property => $value) {
+            $css .= "  {$property}: {$value};\n";
+        }
+        $css .= "}\n";
+
+        return $css;
+    }
+
+    private function generate_font_faces_css(): string
+    {
+        $font_faces = '';
+        $custom_fonts = [
+            'regular' => get_option('awb_custom_font_regular', ''),
+            'medium'  => get_option('awb_custom_font_medium', ''),
+            'bold'    => get_option('awb_custom_font_bold', ''),
+        ];
+
+        $font_weights = [
+            'regular' => '400',
+            'medium'  => '500',
+            'bold'    => '700',
+        ];
+
+        foreach ($custom_fonts as $type => $font_url) {
+            if ($font_url) {
+                $font_faces .= "@font-face {\n";
+                $font_faces .= "  font-family: 'AWB Custom Font';\n";
+                $font_faces .= "  font-weight: {$font_weights[$type]};\n";
+                $font_faces .= "  font-style: normal;\n";
+                $font_faces .= "  src: url('{$font_url}') format('" . $this->get_font_format($font_url) . "');\n";
+                $font_faces .= "}\n\n";
+            }
+        }
+
+        return $font_faces;
+    }
+
+    private function get_font_format(string $font_url): string
+    {
+        $extension = strtolower(pathinfo($font_url, PATHINFO_EXTENSION));
+        $formats = [
+            'woff'  => 'woff',
+            'woff2' => 'woff2',
+            'ttf'   => 'truetype',
+            'otf'   => 'opentype',
+        ];
+
+        return $formats[$extension] ?? 'woff';
+    }
+
+    private function get_font_stack(string $type): string
+    {
+        $has_custom_font = get_option('awb_custom_font_regular', '') ||
+            get_option('awb_custom_font_medium', '') ||
+            get_option('awb_custom_font_bold', '');
+
+        if ($has_custom_font) {
+            $fallback = $type === 'heading' ?
+                get_option('awb_token_font_heading', 'Georgia, serif') :
+                get_option('awb_token_font_body', 'system-ui, sans-serif');
+            return "'AWB Custom Font', {$fallback}";
+        }
+
+        return $type === 'heading' ?
+            get_option('awb_token_font_heading', 'Georgia, serif') :
+            get_option('awb_token_font_body', 'system-ui, sans-serif');
     }
 
     public function enqueue_admin_assets(string $hook): void

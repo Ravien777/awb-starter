@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400..800&display=swap");
-
 /* ─── CONTAINER ─── */
 .vakmannen-pattern .container {
   max-width: 1240px;
@@ -86,7 +84,7 @@
 }
 
 .hero h1 {
-  font-family: "Syne", sans-serif;
+  font-family: var(--awb-font-heading);
   font-size: clamp(2.6rem, 5.5vw, 4.2rem);
   font-weight: 800;
   line-height: 1.12;
@@ -168,7 +166,7 @@
 .search-pill select {
   border: none !important;
   outline: none;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--awb-font-body);
   font-size: 0.95rem;
   color: var(--text-dark) !important;
   background: 0 0 !important;
@@ -192,7 +190,7 @@
   border: none;
   border-radius: 100px;
   padding: 12px 28px;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--awb-font-body);
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
@@ -304,7 +302,7 @@
   margin-bottom: 12px;
 }
 .section-title {
-  font-family: "Syne", sans-serif;
+  font-family: var(--awb-font-heading);
   font-size: clamp(1.9rem, 3.5vw, 2.8rem);
   font-weight: 800;
   text-align: center;
@@ -373,7 +371,7 @@
   transform: scale(1.08) rotate(-3deg);
 }
 .value-card h3 {
-  font-family: "Syne", sans-serif;
+  font-family: var(--awb-font-heading);
   font-size: 1.15rem;
   font-weight: 700;
   margin-bottom: 10px;
@@ -424,7 +422,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: "Syne", sans-serif;
+  font-family: var(--awb-font-heading);
   font-size: 1.6rem;
   font-weight: 800;
   color: white;
@@ -438,7 +436,7 @@
   box-shadow: 0 16px 40px rgba(31, 77, 58, 0.4);
 }
 .step-card h3 {
-  font-family: "Syne", sans-serif;
+  font-family: var(--awb-font-heading);
   font-size: 1.2rem;
   font-weight: 700;
   margin-bottom: 12px;
@@ -507,7 +505,7 @@
   margin-bottom: 20px;
 }
 .story-content h3 {
-  font-family: "Syne", sans-serif;
+  font-family: var(--awb-font-heading);
   font-size: clamp(1.7rem, 3vw, 2.4rem);
   font-weight: 800;
   line-height: 1.2;
@@ -542,7 +540,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: "Syne", sans-serif;
+  font-family: var(--awb-font-heading);
   font-size: 1rem;
   margin-bottom: 8px;
   color: white;
@@ -683,7 +681,12 @@
 
 /* ─── CTA BANNER ─── */
 .cta-section {
-  background: linear-gradient(135deg, #1a3d2b 0%, #2d6a4f 50%, #3d8c68 100%);
+  background: linear-gradient(
+    135deg,
+    var(--awb-color-primary) 0%,
+    color-mix(in srgb, var(--awb-color-primary) 80%, black) 50%,
+    color-mix(in srgb, var(--awb-color-primary) 60%, white) 100%
+  );
   border-radius: 36px;
   padding: 80px 60px;
   text-align: center;
@@ -722,7 +725,7 @@
   z-index: 1;
 }
 .cta-section h2 {
-  font-family: "Syne", sans-serif;
+  font-family: var(--awb-font-heading);
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 800;
   margin-bottom: 16px;
@@ -746,7 +749,7 @@
   border-radius: 100px;
   font-weight: 800;
   font-size: 1rem;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--awb-font-body);
   border: none;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
@@ -758,7 +761,7 @@
 .btn-cta-primary:hover {
   transform: translateY(-3px) scale(1.02);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
-  background: #fff7e8;
+  background: color-mix(in srgb, var(--awb-color-secondary) 20%, white);
 }
 .btn-cta-secondary {
   background: rgba(255, 255, 255, 0.12);
@@ -767,7 +770,7 @@
   border-radius: 100px;
   font-weight: 600;
   font-size: 1rem;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--awb-font-body);
   border: 1px solid rgba(255, 255, 255, 0.25);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -799,7 +802,7 @@
   border-right: none;
 }
 .stat-num {
-  font-family: "Syne", sans-serif;
+  font-family: var(--awb-font-heading);
   font-size: 2.2rem;
   font-weight: 800;
   color: var(--primary-dark);
@@ -814,7 +817,7 @@
 
 /* ─── FOOTER ─── */
 footer {
-  background: #0d1f1a;
+  background: var(--awb-color-text);
   color: rgba(255, 255, 255, 0.7);
   padding: 64px 0 28px;
   margin-top: 0;
@@ -826,7 +829,7 @@ footer {
   margin-bottom: 48px;
 }
 .footer-logo {
-  font-family: "Syne", sans-serif;
+  font-family: var(--awb-font-heading);
   font-size: 1.4rem;
   font-weight: 800;
   color: white;

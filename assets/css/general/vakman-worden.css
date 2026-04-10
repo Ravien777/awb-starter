@@ -1,0 +1,534 @@
+/* ═══════════════════════════════════════════════════════════════════
+   AWB – Vakman Worden page styles
+   All colours reference --awb-* CSS variables so rebranding is a
+   one-line change in the :root block.
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Reset scoped to this pattern ─────────────────────────────── */
+.vakman-worden-pattern *,
+.vakman-worden-pattern *::before,
+.vakman-worden-pattern *::after { box-sizing: border-box; }
+
+.vakman-worden-pattern {
+    font-family: var(--awb-font-body, system-ui, sans-serif);
+    color: var(--awb-color-text, #1a1a1a);
+}
+
+/* ── Shared utility classes ────────────────────────────────────── */
+.vakman-worden-pattern .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 var(--awb-space-lg, 2rem);
+}
+.vakman-worden-pattern .section    { padding: var(--awb-space-xl, 4rem) 0; }
+.vakman-worden-pattern .section-sm { padding: 3rem 0; }
+
+/* ── Reveal animations ─────────────────────────────────────────── */
+.vakman-worden-pattern .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.vakman-worden-pattern .reveal.visible {
+    opacity: 1;
+    transform: none;
+}
+.vakman-worden-pattern .reveal-delay-1 { transition-delay: 0.1s; }
+.vakman-worden-pattern .reveal-delay-2 { transition-delay: 0.2s; }
+.vakman-worden-pattern .reveal-delay-3 { transition-delay: 0.3s; }
+.vakman-worden-pattern .reveal-delay-4 { transition-delay: 0.4s; }
+
+/* ── Section typography ────────────────────────────────────────── */
+.vakman-worden-pattern .vw-section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--awb-space-sm, .5rem);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--awb-color-accent, #e94560);
+    margin-bottom: var(--awb-space-sm, .5rem);
+}
+.vakman-worden-pattern .vw-section-title {
+    font-family: var(--awb-font-heading, Georgia, serif);
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--awb-color-primary, #1a1a2e);
+    margin-bottom: var(--awb-space-md, 1rem);
+}
+.vakman-worden-pattern .vw-section-sub {
+    font-size: 1.05rem;
+    color: #666;
+    max-width: 560px;
+    margin: 0 auto var(--awb-space-xl, 4rem);
+    line-height: 1.7;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+.vakman-worden-pattern .vw-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--awb-space-sm, .5rem);
+    background: var(--awb-color-accent, #e94560);
+    color: #fff;
+    border: none;
+    border-radius: var(--awb-radius-sm, 4px);
+    padding: .85rem 2rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s ease, transform .15s ease;
+    text-decoration: none;
+}
+.vakman-worden-pattern .vw-btn-primary:hover {
+    background: color-mix(in srgb, var(--awb-color-accent, #e94560) 85%, #000);
+    transform: translateY(-1px);
+}
+.vakman-worden-pattern .vw-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--awb-space-sm, .5rem);
+    background: transparent;
+    color: rgba(255,255,255,.85);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: var(--awb-radius-sm, 4px);
+    padding: .85rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s ease, border-color .2s ease;
+}
+.vakman-worden-pattern .vw-btn-secondary:hover {
+    background: rgba(255,255,255,.1);
+    border-color: rgba(255,255,255,.6);
+}
+
+/* ── Hero ──────────────────────────────────────────────────────── */
+.vakman-worden-pattern .vw-hero {
+    position: relative;
+    background: var(--awb-color-primary, #1a1a2e);
+    padding: 100px 0 80px;
+    overflow: hidden;
+}
+.vakman-worden-pattern .vw-hero-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 70% 50%, rgba(233,69,96,.18) 0%, transparent 70%);
+    pointer-events: none;
+}
+.vakman-worden-pattern .vw-hero-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+}
+.vakman-worden-pattern .vw-hero-content { position: relative; z-index: 1; }
+
+.vakman-worden-pattern .vw-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--awb-space-sm, .5rem);
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    padding: .4rem 1rem;
+    font-size: .82rem;
+    font-weight: 600;
+    color: rgba(255,255,255,.8);
+    margin-bottom: var(--awb-space-lg, 2rem);
+}
+.vakman-worden-pattern .vw-hero-eyebrow-dot {
+    width: 8px; height: 8px;
+    background: var(--awb-color-accent, #e94560);
+    border-radius: 50%;
+    animation: vwDotPulse 2s infinite;
+}
+@keyframes vwDotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: .6; transform: scale(.8); }
+}
+
+.vakman-worden-pattern .vw-hero h1 {
+    font-family: var(--awb-font-heading, Georgia, serif);
+    font-size: clamp(2.2rem, 6vw, 3.8rem);
+    font-weight: 700;
+    line-height: 1.1;
+    color: #fff;
+    max-width: 780px;
+    margin-bottom: var(--awb-space-md, 1rem);
+}
+.vakman-worden-pattern .vw-highlight {
+    color: var(--awb-color-accent, #e94560);
+    position: relative;
+}
+.vakman-worden-pattern .vw-hero-sub {
+    font-size: 1.15rem;
+    color: rgba(255,255,255,.72);
+    max-width: 640px;
+    line-height: 1.7;
+    margin-bottom: var(--awb-space-lg, 2rem);
+}
+.vakman-worden-pattern .vw-hero-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--awb-space-md, 1rem);
+    margin-bottom: var(--awb-space-lg, 2rem);
+}
+.vakman-worden-pattern .vw-trust-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin-top: var(--awb-space-md, 1rem);
+}
+.vakman-worden-pattern .vw-trust-item {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .85rem;
+    color: rgba(255,255,255,.65);
+}
+.vakman-worden-pattern .vw-trust-item .fas { color: var(--awb-color-accent, #e94560); }
+.vakman-worden-pattern .vw-star-icon { color: #f5c518 !important; }
+
+/* ── Marquee ───────────────────────────────────────────────────── */
+.vakman-worden-pattern .vw-marquee-section {
+    background: var(--awb-color-secondary, #16213e);
+    padding: .9rem 0;
+    overflow: hidden;
+    white-space: nowrap;
+    border-top: 1px solid rgba(255,255,255,.06);
+}
+.vakman-worden-pattern .vw-marquee-track {
+    display: inline-flex;
+    animation: vwMarquee 30s linear infinite;
+}
+.vakman-worden-pattern .vw-marquee-item {
+    color: rgba(255,255,255,.55);
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 0 .5rem;
+}
+.vakman-worden-pattern .vw-marquee-item .fas { color: var(--awb-color-accent, #e94560); margin-right: .35rem; }
+.vakman-worden-pattern .vw-marquee-sep { margin: 0 .75rem; opacity: .3; }
+@keyframes vwMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ── Stats bar ─────────────────────────────────────────────────── */
+.vakman-worden-pattern .vw-stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--awb-space-md, 1rem);
+    background: var(--awb-color-primary, #1a1a2e);
+    border-radius: var(--awb-radius-lg, 16px);
+    padding: 2.5rem;
+}
+.vakman-worden-pattern .vw-stat-item { text-align: center; }
+.vakman-worden-pattern .vw-stat-num {
+    font-family: var(--awb-font-heading, Georgia, serif);
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 700;
+    color: var(--awb-color-accent, #e94560);
+    line-height: 1;
+    margin-bottom: .4rem;
+}
+.vakman-worden-pattern .vw-stat-label {
+    font-size: .82rem;
+    color: rgba(255,255,255,.55);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+/* ── Value cards ───────────────────────────────────────────────── */
+.vakman-worden-pattern .vw-value-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--awb-space-lg, 2rem);
+    margin-top: var(--awb-space-lg, 2rem);
+}
+.vakman-worden-pattern .vw-value-card {
+    background: #fff;
+    border: 1px solid #f0f0ee;
+    border-radius: var(--awb-radius-md, 8px);
+    padding: 2rem;
+    transition: box-shadow .25s ease, transform .25s ease;
+}
+.vakman-worden-pattern .vw-value-card:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,.08);
+    transform: translateY(-3px);
+}
+.vakman-worden-pattern .vw-value-icon {
+    width: 48px; height: 48px;
+    border-radius: var(--awb-radius-sm, 4px);
+    background: color-mix(in srgb, var(--awb-color-accent, #e94560) 12%, transparent);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: var(--awb-space-md, 1rem);
+    font-size: 1.2rem;
+    color: var(--awb-color-accent, #e94560);
+}
+.vakman-worden-pattern .vw-value-card h3 {
+    font-family: var(--awb-font-heading, Georgia, serif);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--awb-color-primary, #1a1a2e);
+    margin-bottom: .6rem;
+}
+.vakman-worden-pattern .vw-value-card p { font-size: .92rem; color: #666; line-height: 1.7; margin: 0; }
+
+/* ── Steps ─────────────────────────────────────────────────────── */
+.vakman-worden-pattern .vw-steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--awb-space-lg, 2rem);
+    margin-top: var(--awb-space-lg, 2rem);
+    counter-reset: steps;
+}
+.vakman-worden-pattern .vw-step-card {
+    background: #fff;
+    border: 1px solid #f0f0ee;
+    border-radius: var(--awb-radius-md, 8px);
+    padding: 2rem;
+    position: relative;
+}
+.vakman-worden-pattern .vw-step-number {
+    width: 44px; height: 44px;
+    background: var(--awb-color-accent, #e94560);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.2rem;
+    border-radius: var(--awb-radius-sm, 4px);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: var(--awb-space-md, 1rem);
+}
+.vakman-worden-pattern .vw-step-card h3 {
+    font-family: var(--awb-font-heading, Georgia, serif);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--awb-color-primary, #1a1a2e);
+    margin-bottom: .6rem;
+}
+.vakman-worden-pattern .vw-step-card p { font-size: .92rem; color: #666; line-height: 1.7; margin: 0; }
+
+/* ── Pricing ───────────────────────────────────────────────────── */
+.vakman-worden-pattern .vw-pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--awb-space-lg, 2rem);
+    margin-top: var(--awb-space-lg, 2rem);
+    align-items: start;
+}
+.vakman-worden-pattern .vw-pricing-card {
+    background: #fff;
+    border: 1px solid #f0f0ee;
+    border-radius: var(--awb-radius-md, 8px);
+    padding: 2rem;
+    position: relative;
+}
+.vakman-worden-pattern .vw-pricing-card--featured {
+    border-color: var(--awb-color-accent, #e94560);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--awb-color-accent, #e94560) 15%, transparent);
+}
+.vakman-worden-pattern .vw-pricing-badge {
+    display: inline-block;
+    background: #f0f0ee;
+    color: #666;
+    border-radius: var(--awb-radius-sm, 4px);
+    padding: .2rem .75rem;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-bottom: var(--awb-space-md, 1rem);
+}
+.vakman-worden-pattern .vw-pricing-badge--accent {
+    background: var(--awb-color-accent, #e94560);
+    color: #fff;
+}
+.vakman-worden-pattern .vw-pricing-card h3 {
+    font-family: var(--awb-font-heading, Georgia, serif);
+    font-size: 1.15rem;
+    color: var(--awb-color-primary, #1a1a2e);
+    margin-bottom: .5rem;
+}
+.vakman-worden-pattern .vw-pricing-price {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--awb-color-primary, #1a1a2e);
+    margin-bottom: .5rem;
+}
+.vakman-worden-pattern .vw-pricing-price span { font-size: 1rem; color: #999; font-weight: 400; }
+.vakman-worden-pattern .vw-pricing-note { font-size: .82rem; color: #888; margin-bottom: 1rem; line-height: 1.6; }
+.vakman-worden-pattern .vw-pricing-list { list-style: none; margin: 1rem 0 0; padding: 0; }
+.vakman-worden-pattern .vw-pricing-list li {
+    font-size: .9rem;
+    color: #555;
+    padding: .35rem 0;
+    display: flex; align-items: center; gap: .5rem;
+    border-bottom: 1px solid #f5f5f5;
+}
+.vakman-worden-pattern .vw-pricing-list li:last-child { border-bottom: none; }
+.vakman-worden-pattern .vw-pricing-list .fas { color: var(--awb-color-accent, #e94560); font-size: .8rem; }
+
+/* ── Reviews ───────────────────────────────────────────────────── */
+.vakman-worden-pattern .vw-reviews-bg { background: #f8f8f6; border-top: 1px solid #f0f0ee; border-bottom: 1px solid #f0f0ee; }
+.vakman-worden-pattern .vw-reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--awb-space-lg, 2rem);
+    margin-top: var(--awb-space-lg, 2rem);
+}
+.vakman-worden-pattern .vw-review-card {
+    background: #fff;
+    border-radius: var(--awb-radius-md, 8px);
+    padding: 2rem;
+    border: 1px solid #f0f0ee;
+    box-shadow: 0 2px 12px rgba(0,0,0,.04);
+}
+.vakman-worden-pattern .vw-stars { color: #f5c518; margin-bottom: var(--awb-space-md, 1rem); font-size: .9rem; }
+.vakman-worden-pattern .vw-review-text {
+    font-size: .95rem;
+    line-height: 1.7;
+    color: #444;
+    font-style: italic;
+    margin-bottom: var(--awb-space-md, 1rem);
+}
+.vakman-worden-pattern .vw-reviewer {
+    display: flex; align-items: center; gap: var(--awb-space-md, 1rem);
+    border-top: 1px solid #f5f5f5;
+    padding-top: var(--awb-space-md, 1rem);
+}
+.vakman-worden-pattern .vw-reviewer-avatar {
+    width: 40px; height: 40px;
+    background: var(--awb-color-primary, #1a1a2e);
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .95rem;
+    flex-shrink: 0;
+}
+.vakman-worden-pattern .vw-reviewer-name { font-weight: 700; font-size: .9rem; color: var(--awb-color-primary, #1a1a2e); }
+.vakman-worden-pattern .vw-reviewer-location { font-size: .78rem; color: #999; }
+
+/* ── Registration form ─────────────────────────────────────────── */
+.vakman-worden-pattern .vw-form-section {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #f0f0ee;
+    border-radius: var(--awb-radius-lg, 16px);
+    padding: 3rem;
+    box-shadow: 0 4px 32px rgba(0,0,0,.06);
+}
+.vakman-worden-pattern .vw-form-header { text-align: center; margin-bottom: 2rem; }
+.vakman-worden-pattern .vw-form-header h2 {
+    font-family: var(--awb-font-heading, Georgia, serif);
+    font-size: 1.8rem;
+    color: var(--awb-color-primary, #1a1a2e);
+    margin-bottom: .5rem;
+}
+.vakman-worden-pattern .vw-form-header p { color: #666; font-size: .95rem; }
+.vakman-worden-pattern .vw-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--awb-space-md, 1rem);
+    margin-bottom: var(--awb-space-md, 1rem);
+}
+.vakman-worden-pattern .vw-form-group { display: flex; flex-direction: column; gap: .35rem; }
+.vakman-worden-pattern .vw-form-group--full { margin-bottom: var(--awb-space-md, 1rem); }
+.vakman-worden-pattern .vw-form-group label {
+    font-size: .82rem; font-weight: 600; color: var(--awb-color-primary, #1a1a2e);
+}
+.vakman-worden-pattern .vw-form-group input,
+.vakman-worden-pattern .vw-form-group select,
+.vakman-worden-pattern .vw-form-group textarea {
+    padding: .75rem 1rem;
+    border: 1px solid #e0e0dd;
+    border-radius: var(--awb-radius-sm, 4px);
+    font-size: .95rem;
+    font-family: var(--awb-font-body, system-ui, sans-serif);
+    color: var(--awb-color-text, #1a1a1a);
+    background: #fff;
+    transition: border-color .2s ease;
+    width: 100%;
+}
+.vakman-worden-pattern .vw-form-group input:focus,
+.vakman-worden-pattern .vw-form-group select:focus,
+.vakman-worden-pattern .vw-form-group textarea:focus {
+    outline: none;
+    border-color: var(--awb-color-accent, #e94560);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--awb-color-accent, #e94560) 15%, transparent);
+}
+.vakman-worden-pattern .vw-form-check {
+    display: flex; align-items: flex-start; gap: .6rem;
+    font-size: .85rem; color: #666;
+    margin-bottom: var(--awb-space-md, 1rem);
+}
+.vakman-worden-pattern .vw-form-check a { color: var(--awb-color-accent, #e94560); }
+.vakman-worden-pattern .vw-btn-submit { width: 100%; justify-content: center; font-size: 1.05rem; padding: 1rem; }
+.vakman-worden-pattern .vw-form-success {
+    margin-top: var(--awb-space-md, 1rem);
+    padding: 1rem;
+    background: #edf7ed;
+    border-radius: var(--awb-radius-sm, 4px);
+    color: #2e7d32;
+    font-weight: 600;
+    text-align: center;
+}
+.vakman-worden-pattern .vw-form-success .fas { margin-right: .4rem; }
+
+/* ── FAQ ───────────────────────────────────────────────────────── */
+.vakman-worden-pattern .vw-faq {
+    max-width: 700px;
+    margin: var(--awb-space-lg, 2rem) auto 0;
+}
+.vakman-worden-pattern .vw-faq-item {
+    border-bottom: 1px solid #e8e8e5;
+}
+.vakman-worden-pattern .vw-faq-q {
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--awb-color-primary, #1a1a2e);
+    padding: 1.1rem 2rem 1.1rem 0;
+    cursor: pointer;
+    position: relative;
+    font-family: var(--awb-font-body, system-ui, sans-serif);
+}
+.vakman-worden-pattern .vw-faq-q::after {
+    content: '+';
+    position: absolute;
+    right: 0;
+    font-size: 1.4rem;
+    color: var(--awb-color-accent, #e94560);
+    transition: transform .25s ease;
+}
+.vakman-worden-pattern .vw-faq-q[aria-expanded="true"]::after { content: '−'; }
+.vakman-worden-pattern .vw-faq-a {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .35s ease, padding .35s ease;
+}
+.vakman-worden-pattern .vw-faq-a.open { max-height: 300px; padding-bottom: 1rem; }
+.vakman-worden-pattern .vw-faq-a p { font-size: .93rem; color: #666; line-height: 1.75; margin: 0; }
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .vakman-worden-pattern .vw-stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .vakman-worden-pattern .vw-form-row  { grid-template-columns: 1fr; }
+    .vakman-worden-pattern .vw-form-section { padding: 1.5rem; }
+    .vakman-worden-pattern .vw-hero { padding: 60px 0 50px; }
+}
+@media (max-width: 480px) {
+    .vakman-worden-pattern .vw-stats-bar { grid-template-columns: 1fr 1fr; }
+    .vakman-worden-pattern .vw-hero-ctas { flex-direction: column; }
+    .vakman-worden-pattern .vw-btn-primary,
+    .vakman-worden-pattern .vw-btn-secondary { width: 100%; justify-content: center; }
+}

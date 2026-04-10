@@ -21,6 +21,7 @@
     initPatternActions();
     initModal();
     initScaffold();
+    initFontDeletion();
   }
 
   /* ── Editor toolbar (Copy / Clear buttons) ────────────────────────────── */
@@ -362,6 +363,44 @@
           .finally(function () {
             btn.disabled = false;
             btn.textContent = "Create scaffold";
+          });
+      });
+    });
+  }
+
+  /* ── Font deletion ────────────────────────────────────────────────────── */
+
+  function initFontDeletion() {
+    document.querySelectorAll(".awb-delete-font").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const fontType = btn.dataset.fontType;
+        const nonce = btn.dataset.nonce;
+
+        if (!confirm("Are you sure you want to delete this font file?")) {
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("action", "awb_delete_font");
+        formData.append("font_type", fontType);
+        formData.append("nonce", nonce);
+
+        fetch(ajaxurl, {
+          method: "POST",
+          body: formData,
+        })
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (data) {
+            if (data.success) {
+              location.reload();
+            } else {
+              alert("Error: " + (data.data?.message || "Unknown error"));
+            }
+          })
+          .catch(function (err) {
+            alert("Request failed: " + err.message);
           });
       });
     });
