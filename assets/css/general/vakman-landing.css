@@ -234,7 +234,7 @@
   font-size: 0.9rem;
 }
 .trust-item .star-icon {
-  color: var(--secondary);
+  color: var(--primary);
 }
 
 /* ─── MARQUEE ─── */

@@ -58,7 +58,7 @@ class AWB_Settings
             return;
         }
 
-        $tpl = AWB_PLUGIN_PATH . 'templates/admin-settings.php';
+        $tpl = AWB_PLUGIN_PATH . 'admin/admin-settings.php';
         if (file_exists($tpl)) {
             include $tpl;
             return;
@@ -85,7 +85,7 @@ class AWB_Settings
             return;
         }
 
-        $tpl = AWB_PLUGIN_PATH . 'templates/admin-library.php';
+        $tpl = AWB_PLUGIN_PATH . 'admin/admin-library.php';
         if (file_exists($tpl)) {
             include $tpl;
             return;
