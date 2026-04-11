@@ -119,10 +119,14 @@ class AWB_Settings
             'awb_token_color_accent',
             'awb_token_color_text',
             'awb_token_color_bg',
+            'awb_token_color_muted',
+            'awb_token_color_border',
             // Typography
             'awb_token_font_heading',
             'awb_token_font_body',
             'awb_token_font_mono',
+            'awb_token_font_size_base',
+            'awb_token_line_height',
             // Custom Fonts
             'awb_custom_font_regular',
             'awb_custom_font_medium',
@@ -137,10 +141,33 @@ class AWB_Settings
             'awb_token_radius_sm',
             'awb_token_radius_md',
             'awb_token_radius_lg',
+            'awb_token_radius_full',
+            // Layout
+            'awb_token_container_max',
+            'awb_token_container_pad',
+            'awb_token_transition',
+            // Asset loading toggles
+            'awb_defer_js',
+            'awb_minify_css',
+            'awb_disable_frontend_css',
         ];
 
         foreach ($token_settings as $setting) {
             register_setting($group, $setting, [
+                'sanitize_callback' => 'sanitize_text_field',
+                'default'           => '',
+            ]);
+        }
+
+        // Scaffold settings
+        $scaffold_settings = [
+            'awb_scaffold_set_homepage',
+            'awb_scaffold_create_menu',
+            'awb_scaffold_clean',
+        ];
+
+        foreach ($scaffold_settings as $setting) {
+            register_setting('awb_scaffold_group', $setting, [
                 'sanitize_callback' => 'sanitize_text_field',
                 'default'           => '',
             ]);
@@ -160,10 +187,14 @@ class AWB_Settings
             'awb_token_color_accent',
             'awb_token_color_text',
             'awb_token_color_bg',
+            'awb_token_color_muted',
+            'awb_token_color_border',
             // Typography
             'awb_token_font_heading',
             'awb_token_font_body',
             'awb_token_font_mono',
+            'awb_token_font_size_base',
+            'awb_token_line_height',
             // Spacing
             'awb_token_space_xs',
             'awb_token_space_sm',
@@ -174,6 +205,11 @@ class AWB_Settings
             'awb_token_radius_sm',
             'awb_token_radius_md',
             'awb_token_radius_lg',
+            'awb_token_radius_full',
+            // Layout
+            'awb_token_container_max',
+            'awb_token_container_pad',
+            'awb_token_transition',
         ];
 
         foreach ($token_settings as $setting) {

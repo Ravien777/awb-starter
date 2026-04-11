@@ -163,6 +163,7 @@ $tabs = [
                                 <span class="awb-toggle-field__desc">Adds <code>defer</code> attribute to the custom JS script tag.</span>
                             </div>
                             <div class="awb-toggle-switch">
+                                <input type="hidden" name="awb_defer_js" value="0">
                                 <input type="checkbox" name="awb_defer_js" id="awb_defer_js" value="1" <?php checked(get_option('awb_defer_js', 0), 1); ?>>
                                 <span class="awb-toggle-switch__track"></span>
                             </div>
@@ -173,6 +174,7 @@ $tabs = [
                                 <span class="awb-toggle-field__desc">Strips comments and whitespace before injecting custom CSS inline.</span>
                             </div>
                             <div class="awb-toggle-switch">
+                                <input type="hidden" name="awb_minify_css" value="0">
                                 <input type="checkbox" name="awb_minify_css" id="awb_minify_css" value="1" <?php checked(get_option('awb_minify_css', 0), 1); ?>>
                                 <span class="awb-toggle-switch__track"></span>
                             </div>
@@ -183,6 +185,7 @@ $tabs = [
                                 <span class="awb-toggle-field__desc">Skips loading <code>frontend.css</code>. Use only if you're fully replacing plugin styles.</span>
                             </div>
                             <div class="awb-toggle-switch">
+                                <input type="hidden" name="awb_disable_frontend_css" value="0">
                                 <input type="checkbox" name="awb_disable_frontend_css" id="awb_disable_frontend_css" value="1" <?php checked(get_option('awb_disable_frontend_css', 0), 1); ?>>
                                 <span class="awb-toggle-switch__track"></span>
                             </div>
@@ -447,6 +450,7 @@ $tabs = [
                             <span class="awb-toggle-field__desc">Assigns the created Home page as the static front page in Settings → Reading.</span>
                         </div>
                         <div class="awb-toggle-switch">
+                            <input type="hidden" name="awb_scaffold_set_homepage" value="0">
                             <input type="checkbox" name="awb_scaffold_set_homepage" value="1" <?php checked(get_option('awb_scaffold_set_homepage', 1), 1); ?>>
                             <span class="awb-toggle-switch__track"></span>
                         </div>
@@ -457,6 +461,7 @@ $tabs = [
                             <span class="awb-toggle-field__desc">Builds a primary menu from the scaffolded pages and registers it in the Primary Menu location.</span>
                         </div>
                         <div class="awb-toggle-switch">
+                            <input type="hidden" name="awb_scaffold_create_menu" value="0">
                             <input type="checkbox" name="awb_scaffold_create_menu" value="1" <?php checked(get_option('awb_scaffold_create_menu', 1), 1); ?>>
                             <span class="awb-toggle-switch__track"></span>
                         </div>
@@ -467,6 +472,7 @@ $tabs = [
                             <span class="awb-toggle-field__desc">Removes the default "Hello world!" post and "Sample Page" before scaffolding.</span>
                         </div>
                         <div class="awb-toggle-switch">
+                            <input type="hidden" name="awb_scaffold_clean" value="0">
                             <input type="checkbox" name="awb_scaffold_clean" value="1" <?php checked(get_option('awb_scaffold_clean', 1), 1); ?>>
                             <span class="awb-toggle-switch__track"></span>
                         </div>
