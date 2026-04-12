@@ -202,25 +202,46 @@ class AWB_Asset_Loader
 
     public function enqueue_admin_assets(string $hook): void
     {
-        if (str_starts_with($hook, 'toplevel_page_awb') || str_contains($hook, 'awb-starter')) {
+        $is_awb_page    = str_starts_with($hook, 'toplevel_page_awb') || str_contains($hook, 'awb-starter');
+        $is_editor_page = in_array($hook, ['post.php', 'post-new.php'], true);
+
+        // ── Shared admin base assets (all AWB admin screens + editor) ──────────
+        if ($is_awb_page || $is_editor_page) {
             $this->enqueue_style('awb-starter-admin', 'assets/css/admin.css');
             $this->enqueue_script('awb-starter-admin', 'assets/js/admin.js');
-            return;
         }
 
-        if (! in_array($hook, ['post.php', 'post-new.php'], true)) {
-            return;
+        // ── AWB settings page only ─────────────────────────────────────────────
+        if ($is_awb_page) {
+            // Header & Footer switcher tab assets.
+            $this->enqueue_style('awb-admin-header-footer', 'assets/css/admin-header-footer.css', ['awb-starter-admin']);
+            $this->enqueue_script('awb-admin-header-footer', 'assets/js/admin-header-footer.js', ['jquery', 'awb-starter-admin']);
+
+            wp_localize_script(
+                'awb-admin-header-footer',
+                'awbHeaderFooter',
+                [
+                    'ajaxUrl' => admin_url('admin-ajax.php'),
+                    'nonce'   => wp_create_nonce('awb_save_header_footer'),
+                    'i18n'    => [
+                        'saving' => __('Saving…', 'awb-starter'),
+                        'saved'  => __('Saved!',  'awb-starter'),
+                        'error'  => __('Something went wrong. Please try again.', 'awb-starter'),
+                    ],
+                ]
+            );
         }
 
-        $this->enqueue_style('awb-starter-admin', 'assets/css/admin.css');
-        $this->enqueue_script('awb-starter-admin', 'assets/js/admin.js');
-        $this->enqueue_script('awb-starter-ai-admin', 'assets/js/ai-admin.js', ['awb-starter-admin']);
+        // ── Block editor (post.php / post-new.php) only ────────────────────────
+        if ($is_editor_page) {
+            $this->enqueue_script('awb-starter-ai-admin', 'assets/js/ai-admin.js', ['awb-starter-admin']);
 
-        if (wp_script_is('awb-starter-ai-admin', 'enqueued')) {
-            wp_localize_script('awb-starter-ai-admin', 'AWB', [
-                'ajaxUrl' => admin_url('admin-ajax.php'),
-                'nonce'   => wp_create_nonce('awb_generate_nonce'),
-            ]);
+            if (wp_script_is('awb-starter-ai-admin', 'enqueued')) {
+                wp_localize_script('awb-starter-ai-admin', 'AWB', [
+                    'ajaxUrl' => admin_url('admin-ajax.php'),
+                    'nonce'   => wp_create_nonce('awb_generate_nonce'),
+                ]);
+            }
         }
     }
 

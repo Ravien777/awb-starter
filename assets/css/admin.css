@@ -1363,9 +1363,6 @@ input.awb-editor.awb-api-input {
   border-radius: unset;
   border: none;
 }
-#wpfooter {
-  display: none !important;
-}
 
 /* =============================================================================
    AWB Starter — Pattern Library Styles  (admin-library.php)

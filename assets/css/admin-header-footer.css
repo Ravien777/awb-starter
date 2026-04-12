@@ -1,0 +1,54 @@
+/**
+ * AWB Starter — Header & Footer Switcher Admin Styles
+ *
+ * Scoped to .awb-header-footer and .awb-hf-section to avoid collisions
+ * with the rest of the plugin admin UI.
+ *
+ * @package AWB_Starter
+ * @since   1.0.0
+ */
+
+/* Cards -------------------------------------------------------------------- */
+.awb-hf-section.awb-card {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.awb-hf-section.awb-card h2 {
+  margin-top: 0;
+  padding-top: 0;
+  font-size: 15px;
+  border-bottom: 1px solid #f0f0f1;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+}
+
+.awb-hf-section.awb-card .description {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #50575e;
+}
+
+/* Picker selects ----------------------------------------------------------- */
+.awb-hf-section select {
+  min-width: 280px;
+}
+
+/* Save status -------------------------------------------------------------- */
+.awb-save-status {
+  margin-left: 12px;
+  font-style: italic;
+  vertical-align: middle;
+}
+
+.awb-save-status.awb-status--success {
+  color: #00a32a;
+}
+
+.awb-save-status.awb-status--error {
+  color: #d63638;
+}

@@ -16,6 +16,7 @@ $base_url   = admin_url('admin.php?page=awb-starter');
 $tabs = [
     'css-js'   => ['label' => 'CSS &amp; JS',    'icon' => '✦'],
     'tokens'   => ['label' => 'Design Tokens',   'icon' => '◈'],
+    'header-footer' => ['label' => 'Header & Footer',   'icon' => '▤'],
     'scaffold' => ['label' => 'Site Scaffold',   'icon' => '⬡'],
     'ai'       => ['label' => 'AI Generator',    'icon' => '◎'],
     'patterns' => ['label' => 'Pattern Library', 'icon' => '▦'],
@@ -38,8 +39,8 @@ $tabs = [
             <a href="<?php echo esc_url($base_url . '&tab=' . $slug); ?>"
                 class="awb-settings-nav__item <?php echo $active_tab === $slug ? 'is-active' : ''; ?>"
                 aria-current="<?php echo $active_tab === $slug ? 'page' : 'false'; ?>">
-                <span class="awb-nav-icon" aria-hidden="true"><?php echo $tab['icon']; ?></span>
-                <?php echo $tab['label']; ?>
+                <span class="awb-nav-icon" aria-hidden="true"><?php echo esc_html($tab['icon']); ?></span>
+                <?php echo wp_kses($tab['label'], ['amp' => []]); ?>
             </a>
         <?php endforeach; ?>
     </nav>
@@ -389,6 +390,178 @@ $tabs = [
                     </div>
                 </div>
             </form><!-- /fonts form -->
+
+            <?php /* ═══════════════════════════════════════════════════════
+               Tab: Header & Footer Switcher
+        ═══════════════════════════════════════════════════════ */ ?>
+        <?php elseif ($active_tab === 'header-footer') :
+
+            // Retrieve saved state — used to pre-select dropdowns.
+            $hf_header_type  = get_option(AWB_Header_Switcher::OPTION_HEADER_TYPE,  'none');
+            $hf_header_value = get_option(AWB_Header_Switcher::OPTION_HEADER_VALUE, '');
+            $hf_footer_type  = get_option(AWB_Header_Switcher::OPTION_FOOTER_TYPE,  'none');
+            $hf_footer_value = get_option(AWB_Header_Switcher::OPTION_FOOTER_VALUE, '');
+
+            // Patterns scoped by folder name (header / footer).
+            $hf_header_patterns = AWB_Header_Switcher::get_awb_patterns('header');
+            $hf_footer_patterns = AWB_Header_Switcher::get_awb_patterns('footer');
+
+            // All reusable blocks (synced patterns) available on this site.
+            $hf_reusable_blocks = AWB_Header_Switcher::get_reusable_blocks();
+        ?>
+
+            <div class="awb-header-footer">
+
+                <?php wp_nonce_field('awb_save_header_footer', 'awb_header_footer_nonce'); ?>
+
+                <!-- ── Header ── -->
+                <div class="awb-hf-section awb-card">
+                    <h2><?php esc_html_e('Site Header', 'awb-starter'); ?></h2>
+                    <p class="description"><?php esc_html_e('Replace your theme\'s default header. Choose a plugin pattern or any reusable block you\'ve built in the editor.', 'awb-starter'); ?></p>
+
+                    <table class="form-table" role="presentation">
+                        <tr>
+                            <th scope="row"><label for="awb_header_type"><?php esc_html_e('Source', 'awb-starter'); ?></label></th>
+                            <td>
+                                <select id="awb_header_type" name="awb_header_type" class="awb-switcher-type">
+                                    <option value="none" <?php selected($hf_header_type, 'none'); ?>><?php esc_html_e('— Use theme default —', 'awb-starter'); ?></option>
+                                    <option value="pattern" <?php selected($hf_header_type, 'pattern'); ?>><?php esc_html_e('AWB Plugin Pattern', 'awb-starter'); ?></option>
+                                    <option value="block" <?php selected($hf_header_type, 'block'); ?>><?php esc_html_e('My Reusable Block / Synced Pattern', 'awb-starter'); ?></option>
+                                </select>
+                            </td>
+                        </tr>
+
+                        <!-- Pattern picker -->
+                        <tr id="awb-header-row-pattern" <?php echo 'pattern' !== $hf_header_type ? 'hidden' : ''; ?>>
+                            <th scope="row"><label for="awb_header_pattern_value"><?php esc_html_e('Pattern', 'awb-starter'); ?></label></th>
+                            <td>
+                                <?php if (empty($hf_header_patterns)) : ?>
+                                    <p class="description"><?php esc_html_e('No header patterns registered yet. Add PHP files to patterns/header/.', 'awb-starter'); ?></p>
+                                <?php else : ?>
+                                    <select id="awb_header_pattern_value" name="awb_header_pattern_value">
+                                        <option value=""><?php esc_html_e('— Select a pattern —', 'awb-starter'); ?></option>
+                                        <?php foreach ($hf_header_patterns as $p) : ?>
+                                            <option value="<?php echo esc_attr($p['slug']); ?>"
+                                                <?php selected('pattern' === $hf_header_type ? $hf_header_value : '', $p['slug']); ?>>
+                                                <?php echo esc_html($p['title']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+
+                        <!-- Reusable block picker -->
+                        <tr id="awb-header-row-block" <?php echo 'block' !== $hf_header_type ? 'hidden' : ''; ?>>
+                            <th scope="row"><label for="awb_header_block_value"><?php esc_html_e('Reusable Block', 'awb-starter'); ?></label></th>
+                            <td>
+                                <?php if (empty($hf_reusable_blocks)) : ?>
+                                    <p class="description">
+                                        <?php printf(
+                                            /* translators: %s: link to reusable blocks editor */
+                                            esc_html__('No reusable blocks found. %s to create one.', 'awb-starter'),
+                                            '<a href="' . esc_url(admin_url('edit.php?post_type=wp_block')) . '" target="_blank">' . esc_html__('Click here', 'awb-starter') . '</a>'
+                                        ); ?>
+                                    </p>
+                                <?php else : ?>
+                                    <select id="awb_header_block_value" name="awb_header_block_value">
+                                        <option value=""><?php esc_html_e('— Select a block —', 'awb-starter'); ?></option>
+                                        <?php foreach ($hf_reusable_blocks as $block) : ?>
+                                            <option value="<?php echo esc_attr($block->ID); ?>"
+                                                <?php selected('block' === $hf_header_type ? $hf_header_value : '', (string) $block->ID); ?>>
+                                                <?php echo esc_html($block->post_title); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <p class="description">
+                                        <a href="<?php echo esc_url(admin_url('edit.php?post_type=wp_block')); ?>" target="_blank">
+                                            <?php esc_html_e('Manage reusable blocks →', 'awb-starter'); ?>
+                                        </a>
+                                    </p>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    </table>
+                </div><!-- /.awb-card (header) -->
+
+                <!-- ── Footer ── -->
+                <div class="awb-hf-section awb-card">
+                    <h2><?php esc_html_e('Site Footer', 'awb-starter'); ?></h2>
+                    <p class="description"><?php esc_html_e('Replace your theme\'s default footer with a plugin pattern or a reusable block.', 'awb-starter'); ?></p>
+
+                    <table class="form-table" role="presentation">
+                        <tr>
+                            <th scope="row"><label for="awb_footer_type"><?php esc_html_e('Source', 'awb-starter'); ?></label></th>
+                            <td>
+                                <select id="awb_footer_type" name="awb_footer_type" class="awb-switcher-type">
+                                    <option value="none" <?php selected($hf_footer_type, 'none'); ?>><?php esc_html_e('— Use theme default —', 'awb-starter'); ?></option>
+                                    <option value="pattern" <?php selected($hf_footer_type, 'pattern'); ?>><?php esc_html_e('AWB Plugin Pattern', 'awb-starter'); ?></option>
+                                    <option value="block" <?php selected($hf_footer_type, 'block'); ?>><?php esc_html_e('My Reusable Block / Synced Pattern', 'awb-starter'); ?></option>
+                                </select>
+                            </td>
+                        </tr>
+
+                        <!-- Pattern picker -->
+                        <tr id="awb-footer-row-pattern" <?php echo 'pattern' !== $hf_footer_type ? 'hidden' : ''; ?>>
+                            <th scope="row"><label for="awb_footer_pattern_value"><?php esc_html_e('Pattern', 'awb-starter'); ?></label></th>
+                            <td>
+                                <?php if (empty($hf_footer_patterns)) : ?>
+                                    <p class="description"><?php esc_html_e('No footer patterns registered yet. Add PHP files to patterns/footer/.', 'awb-starter'); ?></p>
+                                <?php else : ?>
+                                    <select id="awb_footer_pattern_value" name="awb_footer_pattern_value">
+                                        <option value=""><?php esc_html_e('— Select a pattern —', 'awb-starter'); ?></option>
+                                        <?php foreach ($hf_footer_patterns as $p) : ?>
+                                            <option value="<?php echo esc_attr($p['slug']); ?>"
+                                                <?php selected('pattern' === $hf_footer_type ? $hf_footer_value : '', $p['slug']); ?>>
+                                                <?php echo esc_html($p['title']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+
+                        <!-- Reusable block picker -->
+                        <tr id="awb-footer-row-block" <?php echo 'block' !== $hf_footer_type ? 'hidden' : ''; ?>>
+                            <th scope="row"><label for="awb_footer_block_value"><?php esc_html_e('Reusable Block', 'awb-starter'); ?></label></th>
+                            <td>
+                                <?php if (empty($hf_reusable_blocks)) : ?>
+                                    <p class="description">
+                                        <?php printf(
+                                            esc_html__('No reusable blocks found. %s to create one.', 'awb-starter'),
+                                            '<a href="' . esc_url(admin_url('edit.php?post_type=wp_block')) . '" target="_blank">' . esc_html__('Click here', 'awb-starter') . '</a>'
+                                        ); ?>
+                                    </p>
+                                <?php else : ?>
+                                    <select id="awb_footer_block_value" name="awb_footer_block_value">
+                                        <option value=""><?php esc_html_e('— Select a block —', 'awb-starter'); ?></option>
+                                        <?php foreach ($hf_reusable_blocks as $block) : ?>
+                                            <option value="<?php echo esc_attr($block->ID); ?>"
+                                                <?php selected('block' === $hf_footer_type ? $hf_footer_value : '', (string) $block->ID); ?>>
+                                                <?php echo esc_html($block->post_title); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <p class="description">
+                                        <a href="<?php echo esc_url(admin_url('edit.php?post_type=wp_block')); ?>" target="_blank">
+                                            <?php esc_html_e('Manage reusable blocks →', 'awb-starter'); ?>
+                                        </a>
+                                    </p>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    </table>
+                </div><!-- /.awb-card (footer) -->
+
+                <!-- ── Save ── -->
+                <p class="submit">
+                    <button type="button" id="awb-save-header-footer" class="button button-primary awb-btn awb-btn--primary">
+                        <?php esc_html_e('Save Header & Footer Settings', 'awb-starter'); ?>
+                    </button>
+                    <span id="awb-header-footer-status" class="awb-save-status" aria-live="polite"></span>
+                </p>
+
+            </div><!-- /.awb-header-footer -->
 
             <?php /* ═══════════════════════════════════════════════════════
                Tab: Site Scaffold
