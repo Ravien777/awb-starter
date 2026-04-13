@@ -14,13 +14,13 @@ $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'css-js';
 $base_url   = admin_url('admin.php?page=awb-starter');
 
 $tabs = [
-    'css-js'   => ['label' => 'CSS &amp; JS',    'icon' => '✦'],
-    'tokens'   => ['label' => 'Design Tokens',   'icon' => '◈'],
-    'header-footer' => ['label' => 'Header & Footer',   'icon' => '▤'],
-    'scaffold' => ['label' => 'Site Scaffold',   'icon' => '⬡'],
-    'ai'       => ['label' => 'AI Generator',    'icon' => '◎'],
-    'patterns' => ['label' => 'Pattern Library', 'icon' => '▦'],
-    'info'     => ['label' => 'About',           'icon' => '◇'],
+    'css-js'        => ['label' => 'CSS &amp; JS',    'icon' => '✦'],
+    'tokens'        => ['label' => 'Design Tokens',   'icon' => '◈'],
+    'header-footer' => ['label' => 'Header & Footer',  'icon' => '▤'],
+    'scaffold'      => ['label' => 'Site Scaffold',   'icon' => '⬡'],
+    'ai'            => ['label' => 'AI Generator',    'icon' => '◎'],
+    'patterns'      => ['label' => 'Pattern Library', 'icon' => '▦'],
+    'info'          => ['label' => 'About',            'icon' => '◇'],
 ];
 ?>
 
@@ -201,17 +201,10 @@ $tabs = [
 
             <?php /* ═══════════════════════════════════════════════════════
                Tab: Design Tokens
-               TWO separate forms, clearly delimited:
-               1. Token form  — posts to awb_save_design_tokens
-               2. Font form   — posts to awb_save_font_settings
         ═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'tokens') : ?>
 
             <?php
-            /*
-             * All non-file token groups are rendered inside a SINGLE form.
-             * The custom-fonts group is rendered in its OWN form below.
-             */
             $token_groups = [
                 'colors' => [
                     'label'  => 'Colors',
@@ -265,7 +258,6 @@ $tabs = [
             ];
             ?>
 
-            <!-- ── Form 1: Design tokens (colors, type, spacing, borders, layout) ── -->
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="awb-form" id="awb-tokens-form">
                 <input type="hidden" name="action" value="awb_save_design_tokens">
                 <?php wp_nonce_field('awb_save_design_tokens_nonce'); ?>
@@ -282,8 +274,6 @@ $tabs = [
                         <div class="awb-token-grid">
                             <?php foreach ($group['fields'] as $option_name => $field) :
                                 $value   = get_option($option_name, $field['default'] ?? '');
-                                // Map option name → CSS variable name:
-                                // awb_token_color_primary → --awb-color-primary
                                 $css_var = '--awb-' . str_replace('_', '-', preg_replace('/^awb_token_/', '', $option_name));
                             ?>
                                 <div class="awb-token-field">
@@ -318,7 +308,6 @@ $tabs = [
                     </div>
                 <?php endforeach; ?>
 
-                <!-- Live preview of generated :root block -->
                 <div class="awb-form__section awb-form__section--preview">
                     <div class="awb-form__section-header">
                         <h2>Generated output</h2>
@@ -332,9 +321,8 @@ $tabs = [
                 <div class="awb-form__actions">
                     <?php submit_button('Save Tokens', 'primary', 'submit', false, ['class' => 'awb-btn awb-btn--primary']); ?>
                 </div>
-            </form><!-- /tokens form -->
+            </form>
 
-            <!-- ── Form 2: Custom font uploads (separate action, separate nonce) ── -->
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
                 enctype="multipart/form-data" class="awb-form awb-form--fonts" id="awb-fonts-form">
                 <input type="hidden" name="action" value="awb_save_font_settings">
@@ -389,30 +377,32 @@ $tabs = [
                         <?php submit_button('Upload Fonts', 'primary', 'submit', false, ['class' => 'awb-btn awb-btn--primary']); ?>
                     </div>
                 </div>
-            </form><!-- /fonts form -->
+            </form>
 
             <?php /* ═══════════════════════════════════════════════════════
                Tab: Header & Footer Switcher
         ═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'header-footer') :
 
-            // Retrieve saved state — used to pre-select dropdowns.
+            // Retrieve saved state.
             $hf_header_type  = get_option(AWB_Header_Switcher::OPTION_HEADER_TYPE,  'none');
             $hf_header_value = get_option(AWB_Header_Switcher::OPTION_HEADER_VALUE, '');
             $hf_footer_type  = get_option(AWB_Header_Switcher::OPTION_FOOTER_TYPE,  'none');
             $hf_footer_value = get_option(AWB_Header_Switcher::OPTION_FOOTER_VALUE, '');
 
-            // Patterns scoped by folder name (header / footer).
             $hf_header_patterns = AWB_Header_Switcher::get_awb_patterns('header');
             $hf_footer_patterns = AWB_Header_Switcher::get_awb_patterns('footer');
-
-            // All reusable blocks (synced patterns) available on this site.
             $hf_reusable_blocks = AWB_Header_Switcher::get_reusable_blocks();
         ?>
 
             <div class="awb-header-footer">
 
-                <?php wp_nonce_field('awb_save_header_footer', 'awb_header_footer_nonce'); ?>
+                <!--
+                    NOTE: No wp_nonce_field() here. The nonce is injected via
+                    wp_localize_script() in AWB_Asset_Loader::enqueue_admin_assets()
+                    as awbHeaderFooter.nonce and read by admin-header-footer.js.
+                    A form-field nonce would never be read by the AJAX save path.
+                -->
 
                 <!-- ── Header ── -->
                 <div class="awb-hf-section awb-card">
@@ -421,7 +411,9 @@ $tabs = [
 
                     <table class="form-table" role="presentation">
                         <tr>
-                            <th scope="row"><label for="awb_header_type"><?php esc_html_e('Source', 'awb-starter'); ?></label></th>
+                            <th scope="row">
+                                <label for="awb_header_type"><?php esc_html_e('Source', 'awb-starter'); ?></label>
+                            </th>
                             <td>
                                 <select id="awb_header_type" name="awb_header_type" class="awb-switcher-type">
                                     <option value="none" <?php selected($hf_header_type, 'none'); ?>><?php esc_html_e('— Use theme default —', 'awb-starter'); ?></option>
@@ -431,9 +423,11 @@ $tabs = [
                             </td>
                         </tr>
 
-                        <!-- Pattern picker -->
+                        <!-- Pattern picker row -->
                         <tr id="awb-header-row-pattern" <?php echo 'pattern' !== $hf_header_type ? 'hidden' : ''; ?>>
-                            <th scope="row"><label for="awb_header_pattern_value"><?php esc_html_e('Pattern', 'awb-starter'); ?></label></th>
+                            <th scope="row">
+                                <label for="awb_header_pattern_value"><?php esc_html_e('Pattern', 'awb-starter'); ?></label>
+                            </th>
                             <td>
                                 <?php if (empty($hf_header_patterns)) : ?>
                                     <p class="description"><?php esc_html_e('No header patterns registered yet. Add PHP files to patterns/header/.', 'awb-starter'); ?></p>
@@ -441,8 +435,8 @@ $tabs = [
                                     <select id="awb_header_pattern_value" name="awb_header_pattern_value">
                                         <option value=""><?php esc_html_e('— Select a pattern —', 'awb-starter'); ?></option>
                                         <?php foreach ($hf_header_patterns as $p) : ?>
-                                            <option value="<?php echo esc_attr($p['slug']); ?>"
-                                                <?php selected('pattern' === $hf_header_type ? $hf_header_value : '', $p['slug']); ?>>
+                                            <option value="<?php echo esc_attr($p['name']); ?>"
+                                                <?php selected('pattern' === $hf_header_type ? $hf_header_value : '', $p['name']); ?>>
                                                 <?php echo esc_html($p['title']); ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -451,9 +445,11 @@ $tabs = [
                             </td>
                         </tr>
 
-                        <!-- Reusable block picker -->
+                        <!-- Reusable block picker row -->
                         <tr id="awb-header-row-block" <?php echo 'block' !== $hf_header_type ? 'hidden' : ''; ?>>
-                            <th scope="row"><label for="awb_header_block_value"><?php esc_html_e('Reusable Block', 'awb-starter'); ?></label></th>
+                            <th scope="row">
+                                <label for="awb_header_block_value"><?php esc_html_e('Reusable Block', 'awb-starter'); ?></label>
+                            </th>
                             <td>
                                 <?php if (empty($hf_reusable_blocks)) : ?>
                                     <p class="description">
@@ -491,7 +487,9 @@ $tabs = [
 
                     <table class="form-table" role="presentation">
                         <tr>
-                            <th scope="row"><label for="awb_footer_type"><?php esc_html_e('Source', 'awb-starter'); ?></label></th>
+                            <th scope="row">
+                                <label for="awb_footer_type"><?php esc_html_e('Source', 'awb-starter'); ?></label>
+                            </th>
                             <td>
                                 <select id="awb_footer_type" name="awb_footer_type" class="awb-switcher-type">
                                     <option value="none" <?php selected($hf_footer_type, 'none'); ?>><?php esc_html_e('— Use theme default —', 'awb-starter'); ?></option>
@@ -501,9 +499,11 @@ $tabs = [
                             </td>
                         </tr>
 
-                        <!-- Pattern picker -->
+                        <!-- Pattern picker row -->
                         <tr id="awb-footer-row-pattern" <?php echo 'pattern' !== $hf_footer_type ? 'hidden' : ''; ?>>
-                            <th scope="row"><label for="awb_footer_pattern_value"><?php esc_html_e('Pattern', 'awb-starter'); ?></label></th>
+                            <th scope="row">
+                                <label for="awb_footer_pattern_value"><?php esc_html_e('Pattern', 'awb-starter'); ?></label>
+                            </th>
                             <td>
                                 <?php if (empty($hf_footer_patterns)) : ?>
                                     <p class="description"><?php esc_html_e('No footer patterns registered yet. Add PHP files to patterns/footer/.', 'awb-starter'); ?></p>
@@ -511,8 +511,8 @@ $tabs = [
                                     <select id="awb_footer_pattern_value" name="awb_footer_pattern_value">
                                         <option value=""><?php esc_html_e('— Select a pattern —', 'awb-starter'); ?></option>
                                         <?php foreach ($hf_footer_patterns as $p) : ?>
-                                            <option value="<?php echo esc_attr($p['slug']); ?>"
-                                                <?php selected('pattern' === $hf_footer_type ? $hf_footer_value : '', $p['slug']); ?>>
+                                            <option value="<?php echo esc_attr($p['name']); ?>"
+                                                <?php selected('pattern' === $hf_footer_type ? $hf_footer_value : '', $p['name']); ?>>
                                                 <?php echo esc_html($p['title']); ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -521,9 +521,11 @@ $tabs = [
                             </td>
                         </tr>
 
-                        <!-- Reusable block picker -->
+                        <!-- Reusable block picker row -->
                         <tr id="awb-footer-row-block" <?php echo 'block' !== $hf_footer_type ? 'hidden' : ''; ?>>
-                            <th scope="row"><label for="awb_footer_block_value"><?php esc_html_e('Reusable Block', 'awb-starter'); ?></label></th>
+                            <th scope="row">
+                                <label for="awb_footer_block_value"><?php esc_html_e('Reusable Block', 'awb-starter'); ?></label>
+                            </th>
                             <td>
                                 <?php if (empty($hf_reusable_blocks)) : ?>
                                     <p class="description">
@@ -921,11 +923,11 @@ $tabs = [
                     <div class="awb-system-grid">
                         <?php
                         $sys_checks = [
-                            ['label' => 'PHP version',          'value' => PHP_VERSION,                                                                         'ok' => version_compare(PHP_VERSION, '8.0', '>='),                            'req' => '≥ 8.0'],
-                            ['label' => 'WordPress',            'value' => get_bloginfo('version'),                                                              'ok' => version_compare(get_bloginfo('version'), '6.0', '>='),                'req' => '≥ 6.0'],
-                            ['label' => 'Anthropic API key',    'value' => get_option('awb_ai_api_key') ? 'Configured' : 'Missing',                             'ok' => ! empty(get_option('awb_ai_api_key')),                                'req' => 'Required for AI'],
-                            ['label' => 'patterns/ writable',   'value' => is_writable(plugin_dir_path(dirname(__FILE__)) . 'patterns/') ? 'Writable' : 'Not writable', 'ok' => is_writable(plugin_dir_path(dirname(__FILE__)) . 'patterns/'), 'req' => 'For scaffolding'],
-                            ['label' => 'uploads/ writable',    'value' => wp_is_writable(wp_upload_dir()['basedir']) ? 'Writable' : 'Not writable',             'ok' => wp_is_writable(wp_upload_dir()['basedir']),                          'req' => 'For font uploads'],
+                            ['label' => 'PHP version',         'value' => PHP_VERSION,                                                                                  'ok' => version_compare(PHP_VERSION, '8.0', '>='),                            'req' => '≥ 8.0'],
+                            ['label' => 'WordPress',           'value' => get_bloginfo('version'),                                                                       'ok' => version_compare(get_bloginfo('version'), '6.0', '>='),                'req' => '≥ 6.0'],
+                            ['label' => 'Anthropic API key',   'value' => get_option('awb_ai_api_key') ? 'Configured' : 'Missing',                                      'ok' => ! empty(get_option('awb_ai_api_key')),                                'req' => 'Required for AI'],
+                            ['label' => 'patterns/ writable',  'value' => is_writable(plugin_dir_path(dirname(__FILE__)) . 'patterns/') ? 'Writable' : 'Not writable',  'ok' => is_writable(plugin_dir_path(dirname(__FILE__)) . 'patterns/'),        'req' => 'For scaffolding'],
+                            ['label' => 'uploads/ writable',   'value' => wp_is_writable(wp_upload_dir()['basedir']) ? 'Writable' : 'Not writable',                     'ok' => wp_is_writable(wp_upload_dir()['basedir']),                          'req' => 'For font uploads'],
                         ];
                         foreach ($sys_checks as $check) :
                         ?>

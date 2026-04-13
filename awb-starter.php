@@ -4,7 +4,7 @@
  * Plugin Name:     AWB Starter
  * Plugin URI:      https://your-site.com/
  * Description:     Rapid-development starter plugin with block patterns, templates, and smart asset loading.
- * Version:         2.2.0
+ * Version:         2.2.1
  * Author:          WLM+
  * Text Domain:     awb-starter
  * Requires PHP:    8.0
@@ -17,7 +17,7 @@ if (! defined('ABSPATH')) {
 }
 
 // Plugin constants.
-define('AWB_VERSION',     '2.2.0');
+define('AWB_VERSION',     '2.2.1');
 define('AWB_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('AWB_PLUGIN_URL',  plugin_dir_url(__FILE__));
 
@@ -55,11 +55,11 @@ final class AWB_Starter
         new AWB_Block_Categories();
         new AWB_Pattern_Loader();
         new AWB_Asset_Loader();
+        new AWB_Header_Switcher();
 
         if (is_admin()) {
             new AWB_Settings();
             new AWB_Ajax_Handler();
-            new AWB_Header_Switcher();
         }
     }
 }
