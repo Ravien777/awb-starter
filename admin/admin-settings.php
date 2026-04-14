@@ -869,12 +869,82 @@ $tabs = [
                                         <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-copy-slug"
                                             data-slug="<?php echo esc_attr($pattern['slug']); ?>">Copy slug</button>
                                     <?php endif; ?>
+                                    <?php
+                                    /*
+                                     * Export and Clone buttons — only for PHP patterns in the file map.
+                                     * HTML block-templates are excluded: they are AI scaffolds, not in
+                                     * AWB_Pattern_Loader::$pattern_files, and cannot be exported or cloned.
+                                     *
+                                     * $exportable_name = 'awb/' + sanitize_title(slug), matching the
+                                     * key format used by AWB_Pattern_Loader::$pattern_files.
+                                     */
+                                    $exportable_name = 'awb/' . sanitize_title($pattern['slug']);
+                                    if (
+                                        $pattern['slug']
+                                        && array_key_exists($exportable_name, AWB_Pattern_Loader::$pattern_files)
+                                    ) : ?>
+                                        <button type="button"
+                                            class="awb-btn awb-btn--ghost awb-btn--sm awb-export-pattern"
+                                            data-pattern="<?php echo esc_attr($exportable_name); ?>">
+                                            <?php esc_html_e('Export', 'awb-starter'); ?>
+                                        </button>
+                                        <button type="button"
+                                            class="awb-btn awb-btn--ghost awb-btn--sm awb-duplicate-pattern"
+                                            data-pattern="<?php echo esc_attr($exportable_name); ?>">
+                                            <?php esc_html_e('Clone', 'awb-starter'); ?>
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
-            </div>
+            </div><!-- /.awb-patterns -->
+
+            <!-- ── Import a Pattern ──────────────────────────────────────── -->
+            <div class="awb-card awb-import-pattern">
+                <h3><?php esc_html_e('Import a Pattern', 'awb-starter'); ?></h3>
+                <p class="description">
+                    <?php esc_html_e('Upload a .zip file exported from AWB Starter. Patterns are installed into the patterns/ directory and available immediately after the next page load.', 'awb-starter'); ?>
+                </p>
+
+                <!--
+                    No <form> tag — FormData is built in JS (admin-pattern-io.js)
+                    and POSTed via fetch(), consistent with other AJAX actions in
+                    this plugin. Nonce is supplied via awbPatternIO.importNonce.
+                -->
+                <div class="awb-import-pattern__form">
+                    <input
+                        type="file"
+                        id="awb-import-zip"
+                        accept=".zip"
+                        aria-label="<?php esc_attr_e('Select a pattern ZIP file', 'awb-starter'); ?>">
+                    <button
+                        type="button"
+                        id="awb-import-btn"
+                        class="awb-btn awb-btn--outline"
+                        disabled>
+                        <?php esc_html_e('Import', 'awb-starter'); ?>
+                    </button>
+                </div>
+
+                <!-- Status bar: success or error message, shown after fetch() resolves -->
+                <div id="awb-import-status" class="awb-import-status" hidden></div>
+
+                <!-- Collision dialog: shown when imported pattern files already exist -->
+                <div id="awb-import-collision" class="awb-import-collision" hidden>
+                    <p class="awb-import-collision__msg"></p>
+                    <ul class="awb-import-collision__files"></ul>
+                    <div class="awb-import-collision__actions">
+                        <button type="button" id="awb-import-overwrite" class="awb-btn awb-btn--primary awb-btn--sm">
+                            <?php esc_html_e('Yes, overwrite', 'awb-starter'); ?>
+                        </button>
+                        <button type="button" id="awb-import-cancel" class="awb-btn awb-btn--ghost awb-btn--sm">
+                            <?php esc_html_e('Cancel', 'awb-starter'); ?>
+                        </button>
+                    </div>
+                </div>
+            </div><!-- /.awb-import-pattern -->
 
             <?php /* ═══════════════════════════════════════════════════════
                Tab: About

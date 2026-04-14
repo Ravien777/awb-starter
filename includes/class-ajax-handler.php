@@ -3,6 +3,10 @@
 /**
  * AJAX endpoint registration.
  *
+ * All wp_ajax_awb_* actions are registered here. Each handler method is
+ * responsible for its own capability check and nonce verification before
+ * delegating to the appropriate domain class.
+ *
  * @package AWBStarter
  */
 
@@ -14,10 +18,25 @@ class AWB_Ajax_Handler
 {
     public function __construct()
     {
+        // AI content generation.
         add_action('wp_ajax_awb_generate', [$this, 'handle_generate']);
 
-        add_action('wp_ajax_awb_save_header_footer', array($this, 'save_header_footer'));
+        // Header / footer switcher settings save.
+        add_action('wp_ajax_awb_save_header_footer', [$this, 'save_header_footer']);
+
+        // Pattern export — streams a ZIP download, must be a GET request.
+        add_action('wp_ajax_awb_export_pattern', [$this, 'export_pattern']);
+
+        // Pattern import — accepts a ZIP upload, validates, writes to disk.
+        add_action('wp_ajax_awb_import_pattern', [$this, 'import_pattern']);
+
+        // Pattern duplication — clones a pattern file with a new slug.
+        add_action('wp_ajax_awb_duplicate_pattern', [$this, 'duplicate_pattern']);
     }
+
+    // -------------------------------------------------------------------------
+    // AI generator
+    // -------------------------------------------------------------------------
 
     public function handle_generate(): void
     {
@@ -40,30 +59,31 @@ class AWB_Ajax_Handler
         wp_send_json_success(['blocks' => $result]);
     }
 
+    // -------------------------------------------------------------------------
+    // Header / footer switcher
+    // -------------------------------------------------------------------------
+
     /**
      * AJAX: Save header/footer switcher settings.
      *
      * POST params:
      *   nonce        string  WordPress nonce (action: awb_save_header_footer)
      *   header_type  string  'none' | 'pattern' | 'block'
-     *   header_value string  Pattern slug or reusable-block post ID
+     *   header_value string  Pattern name or reusable-block post ID
      *   footer_type  string  'none' | 'pattern' | 'block'
-     *   footer_value string  Pattern slug or reusable-block post ID
+     *   footer_value string  Pattern name or reusable-block post ID
      */
-    public function save_header_footer()
+    public function save_header_footer(): void
     {
-        // 1. Capability check.
         if (! current_user_can('manage_options')) {
             wp_send_json_error(__('Insufficient permissions.', 'awb-starter'), 403);
         }
 
-        // 2. Nonce verification.
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (! wp_verify_nonce($nonce, 'awb_save_header_footer')) {
             wp_send_json_error(__('Security check failed.', 'awb-starter'), 403);
         }
 
-        // 3. Delegate sanitization and persistence to the switcher class.
         $result = AWB_Header_Switcher::save_settings($_POST);
 
         if (is_wp_error($result)) {
@@ -71,5 +91,168 @@ class AWB_Ajax_Handler
         }
 
         wp_send_json_success(__('Settings saved.', 'awb-starter'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Pattern import
+    // -------------------------------------------------------------------------
+
+    /**
+     * AJAX: Import a pattern from an uploaded ZIP file.
+     *
+     * This is a multipart POST request (file upload). Capability and nonce
+     * are checked here; all file validation and writing is delegated to
+     * AWB_Pattern_Importer::handle_upload().
+     *
+     * POST fields:
+     *   nonce           string  WordPress nonce (action: awb_import_pattern)
+     *   awb_pattern_zip file    The ZIP archive to import
+     *   force           string  '1' = confirmed overwrite of existing files
+     */
+    public function import_pattern(): void
+    {
+        // Capability check.
+        if (! current_user_can('manage_options')) {
+            wp_send_json_error([
+                'code'    => 'error',
+                'message' => __('You do not have permission to import patterns.', 'awb-starter'),
+            ], 403);
+        }
+
+        // Nonce verification.
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (! wp_verify_nonce($nonce, 'awb_import_pattern')) {
+            wp_send_json_error([
+                'code'    => 'error',
+                'message' => __('Security check failed. Please refresh the page and try again.', 'awb-starter'),
+            ], 403);
+        }
+
+        // Delegate all validation and file writing to the Importer.
+        AWB_Pattern_Importer::handle_upload();
+    }
+
+    /**
+     * AJAX: Export a single pattern as a ZIP download.
+     *
+     * This is a GET action — the browser navigates directly to the URL so it
+     * receives the binary ZIP stream and triggers a Save As dialog.
+     * wp_send_json_* must NOT be called; AWB_Pattern_Exporter::stream() exits.
+     *
+     * GET params:
+     *   nonce    string  WordPress nonce (action: awb_export_pattern)
+     *   pattern  string  Full registered pattern name, e.g. 'awb/header-dark'
+     */
+    public function export_pattern(): void
+    {
+        // Capability check.
+        if (! current_user_can('manage_options')) {
+            wp_die(
+                esc_html__('You do not have permission to export patterns.', 'awb-starter'),
+                esc_html__('Permission Denied', 'awb-starter'),
+                ['response' => 403]
+            );
+        }
+
+        // Nonce verification — passed as GET param because this is a direct navigation.
+        $nonce = isset($_GET['nonce']) ? sanitize_text_field(wp_unslash($_GET['nonce'])) : '';
+        if (! wp_verify_nonce($nonce, 'awb_export_pattern')) {
+            wp_die(
+                esc_html__('Security check failed. Please refresh the page and try again.', 'awb-starter'),
+                esc_html__('Security Error', 'awb-starter'),
+                ['response' => 403]
+            );
+        }
+
+        // Sanitize and validate the pattern name.
+        $raw_name = isset($_GET['pattern']) ? sanitize_text_field(wp_unslash($_GET['pattern'])) : '';
+
+        if (empty($raw_name)) {
+            wp_die(
+                esc_html__('No pattern specified.', 'awb-starter'),
+                esc_html__('Export Error', 'awb-starter'),
+                ['response' => 400]
+            );
+        }
+
+        // Only allow patterns registered by this plugin (must start with 'awb/').
+        if (strpos($raw_name, 'awb/') !== 0) {
+            wp_die(
+                esc_html__('Only AWB patterns can be exported.', 'awb-starter'),
+                esc_html__('Export Error', 'awb-starter'),
+                ['response' => 400]
+            );
+        }
+
+        // Delegate to the Exporter — this call never returns (exits after stream).
+        AWB_Pattern_Exporter::stream($raw_name);
+    }
+    // -------------------------------------------------------------------------
+    // Pattern duplication
+    // -------------------------------------------------------------------------
+
+    /**
+     * AJAX: Duplicate a registered AWB pattern.
+     *
+     * Clones the pattern PHP file, generates a unique slug, and rewrites
+     * the Title/Slug header comments in the clone. Returns the new pattern
+     * details so the UI can display a confirmation message.
+     *
+     * POST params:
+     *   nonce    string  WordPress nonce (action: awb_duplicate_pattern)
+     *   pattern  string  Full registered pattern name, e.g. 'awb/header-dark'
+     */
+    public function duplicate_pattern(): void
+    {
+        // Capability check.
+        if (! current_user_can('manage_options')) {
+            wp_send_json_error([
+                'message' => __('You do not have permission to duplicate patterns.', 'awb-starter'),
+            ], 403);
+        }
+
+        // Nonce verification.
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (! wp_verify_nonce($nonce, 'awb_duplicate_pattern')) {
+            wp_send_json_error([
+                'message' => __('Security check failed. Please refresh the page and try again.', 'awb-starter'),
+            ], 403);
+        }
+
+        // Sanitize and validate the pattern name.
+        $raw_name = isset($_POST['pattern']) ? sanitize_text_field(wp_unslash($_POST['pattern'])) : '';
+
+        if (empty($raw_name)) {
+            wp_send_json_error([
+                'message' => __('No pattern specified.', 'awb-starter'),
+            ], 400);
+        }
+
+        // Enforce 'awb/' prefix — guard against duplicating third-party patterns.
+        if (strpos($raw_name, 'awb/') !== 0) {
+            wp_send_json_error([
+                'message' => __('Only AWB patterns can be duplicated.', 'awb-starter'),
+            ], 400);
+        }
+
+        // Delegate to the Duplicator.
+        $result = AWB_Pattern_Duplicator::duplicate($raw_name);
+
+        if (is_wp_error($result)) {
+            wp_send_json_error([
+                'message' => $result->get_error_message(),
+            ]);
+        }
+
+        wp_send_json_success([
+            'new_registered_name' => $result['new_registered_name'],
+            'new_slug'            => $result['new_slug'],
+            'new_title'           => $result['new_title'],
+            'message'             => sprintf(
+                /* translators: %s: new pattern title */
+                __('Pattern duplicated as "%s". Reload the page to see it in the library.', 'awb-starter'),
+                $result['new_title']
+            ),
+        ]);
     }
 }
