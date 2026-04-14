@@ -1,0 +1,193 @@
+/**
+ * AWB Starter — Pattern Import / Export UI styles
+ *
+ * Export button styles (Step 3) and Import upload area + collision dialog
+ * (Step 5). Builds on the existing .awb-btn system in admin.css — only
+ * additions here, no overrides of existing rules.
+ *
+ * @package AWB_Starter
+ * @since   2.3.0
+ */
+
+/* ---------------------------------------------------------------------------
+   Export button  (pattern card footer)
+   --------------------------------------------------------------------------- */
+
+.awb-export-pattern {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/*
+ * Busy state while download URL is navigating.
+ * Reduces opacity and blocks further clicks rather than hiding,
+ * so the button footprint doesn't shift card layout.
+ */
+.awb-export-pattern--busy {
+  opacity: 0.55;
+  cursor: default;
+  pointer-events: none;
+}
+
+/*
+ * Allow the card footer to wrap when both "Copy slug" and "Export"
+ * buttons are present on narrow cards.
+ */
+.awb-pattern-card__footer {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------------------------
+   Import card  (.awb-import-pattern)
+   --------------------------------------------------------------------------- */
+
+.awb-import-pattern {
+  margin-top: 32px;
+}
+
+.awb-import-pattern h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--awb-c-ink, #1a1a1a);
+}
+
+.awb-import-pattern > .description {
+  margin: 0 0 16px;
+  color: var(--awb-c-ink-secondary, #6b7280);
+}
+
+/* File input + button row */
+.awb-import-pattern__form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.awb-import-pattern__form input[type="file"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* Use the browser's native file picker — no custom styling needed */
+  font-size: 0.875rem;
+  color: var(--awb-c-ink, #1a1a1a);
+}
+
+.awb-import-pattern__form input[type="file"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------------------
+   Import status bar
+   --------------------------------------------------------------------------- */
+
+.awb-import-status {
+  display: block;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.awb-import-status--success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+
+.awb-import-status--error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+/* ---------------------------------------------------------------------------
+   Collision confirmation dialog
+   --------------------------------------------------------------------------- */
+
+.awb-import-collision {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+}
+
+.awb-import-collision__msg {
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #92400e;
+}
+
+.awb-import-collision__files {
+  margin: 0 0 14px;
+  padding: 0 0 0 18px;
+  list-style: disc;
+}
+
+.awb-import-collision__files li {
+  font-size: 0.8125rem;
+  font-family: monospace;
+  color: #78350f;
+  line-height: 1.8;
+}
+
+.awb-import-collision__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   Clone / Duplicate button  (pattern card footer)
+   --------------------------------------------------------------------------- */
+
+.awb-duplicate-pattern {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* In-flight state — matches .awb-export-pattern--busy pattern */
+.awb-duplicate-pattern--busy {
+  opacity: 0.55;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Brief "Cloned ✓" confirmation state */
+.awb-duplicate-pattern--done {
+  color: #166534;
+  border-color: #86efac;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Inline clone status message  (appended to .awb-pattern-card by JS)
+   --------------------------------------------------------------------------- */
+
+.awb-duplicate-status {
+  margin: 8px 0 0;
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.awb-duplicate-status--success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+
+.awb-duplicate-status--error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
