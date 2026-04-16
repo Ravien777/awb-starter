@@ -53,6 +53,14 @@ class AWB_Pattern_Loader
      */
     public static array $pattern_files = [];
 
+    /**
+     * Source indicator for each pattern: 'core' (plugin) or 'user' (uploads).
+     * Populated during registration.
+     *
+     * @var array<string, string>
+     */
+    public static array $pattern_source = [];
+
     // -------------------------------------------------------------------------
 
     public function __construct()
@@ -66,16 +74,24 @@ class AWB_Pattern_Loader
             return;
         }
 
-        // PHP patterns from the main patterns/ directory.
-        $this->register_patterns_from_dir(AWB_PATTERNS_PATH, 'php');
+        // 1. Core patterns (read‑only, shipped with plugin).
+        $this->register_patterns_from_dir(AWB_PATTERNS_PATH, 'php', 'core');
 
-        // HTML scaffolds from block-templates/ (AI generator templates).
-        $this->register_patterns_from_dir(AWB_PLUGIN_PATH . 'block-templates/', 'html');
+        // 2. User patterns (imported/duplicated, stored in uploads).
+        $this->register_patterns_from_dir(AWB_USER_PATTERNS_PATH . 'patterns/', 'php', 'user');
+
+        // HTML scaffolds (AI templates) – only from plugin.
+        $this->register_patterns_from_dir(AWB_PLUGIN_PATH . 'block-templates/', 'html', 'core');
     }
 
     // -------------------------------------------------------------------------
 
-    private function register_patterns_from_dir(string $dir, string $extension): void
+    /**
+     * @param string $dir
+     * @param string $extension
+     * @param string $source  'core' or 'user'
+     */
+    private function register_patterns_from_dir(string $dir, string $extension, string $source = 'core'): void
     {
         if (! is_dir($dir)) {
             return;
@@ -93,7 +109,7 @@ class AWB_Pattern_Loader
             $filepath = $file->getPathname();
 
             if ('php' === $extension) {
-                $this->register_php_pattern($filepath);
+                $this->register_php_pattern($filepath, $source);
             } else {
                 $this->register_html_pattern($filepath);
             }
@@ -101,9 +117,12 @@ class AWB_Pattern_Loader
     }
 
     /**
-     * Register a single PHP-based pattern and record it in both static maps.
+     * Register a single PHP‑based pattern.
+     *
+     * @param string $filepath
+     * @param string $source   'core' or 'user'
      */
-    private function register_php_pattern(string $filepath): void
+    private function register_php_pattern(string $filepath, string $source = 'core'): void
     {
         $meta = get_file_data($filepath, [
             'title'       => 'Title',
@@ -126,16 +145,22 @@ class AWB_Pattern_Loader
             return;
         }
 
-        // ── Static maps ──────────────────────────────────────────────────────
+        // Store file path and source.
+        self::$pattern_files[$registered_name]   = $filepath;
+        self::$pattern_source[$registered_name]  = $source;
 
-        // File-path map: allows Exporter to locate the source file directly.
-        self::$pattern_files[$registered_name] = $filepath;
-
-        // Asset map: allows Asset_Loader to enqueue CSS/JS conditionally.
+        // Asset map – adjust paths for user patterns.
         if (! empty($meta['css']) || ! empty($meta['js'])) {
+            if ('user' === $source) {
+                // User patterns store assets in uploads directory.
+                $base_url = AWB_USER_PATTERNS_URL;
+            } else {
+                $base_url = AWB_PLUGIN_URL;
+            }
+
             self::$pattern_assets[$registered_name] = [
-                'css' => $meta['css'] ?? '',
-                'js'  => $meta['js']  ?? '',
+                'css' => ! empty($meta['css']) ? $base_url . ltrim($meta['css'], '/') : '',
+                'js'  => ! empty($meta['js'])  ? $base_url . ltrim($meta['js'], '/')  : '',
             ];
         }
 

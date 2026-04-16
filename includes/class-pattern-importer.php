@@ -336,40 +336,32 @@ class AWB_Pattern_Importer
     /**
      * Build and validate all destination file paths for this import.
      *
-     * Pattern PHP → AWB_PATTERNS_PATH . {slug} / {slug} . '.php'
-     * CSS         → AWB_PLUGIN_PATH   . {css_file}   (validated)
-     * JS          → AWB_PLUGIN_PATH   . {js_file}    (validated)
-     *
-     * Aborts with a JSON error if any path fails validation.
-     *
-     * @param  array $meta Sanitised metadata from read_metadata().
-     * @return array{
-     *     pattern_dir: string,
-     *     pattern_php: string,
-     *     css:         string,
-     *     js:          string,
-     * }
+     * Pattern PHP → AWB_USER_PATTERNS_PATH . 'patterns/' . {slug} / {slug} . '.php'
+     * CSS         → AWB_USER_PATTERNS_PATH . 'css/' . {slug} . '.css'
+     * JS          → AWB_USER_PATTERNS_PATH . 'js/' . {slug} . '.js'
      */
     private static function build_destination_paths(array $meta): array
     {
         $slug = $meta['slug'];
 
         // Pattern PHP destination.
-        $pattern_dir = trailingslashit(AWB_PATTERNS_PATH . $slug);
+        $pattern_dir = trailingslashit(AWB_USER_PATTERNS_PATH . 'patterns/' . $slug);
         $pattern_php = $pattern_dir . $slug . '.php';
 
-        self::assert_path_within($pattern_php, AWB_PATTERNS_PATH, 'pattern file');
+        self::assert_path_within($pattern_php, AWB_USER_PATTERNS_PATH, 'pattern file');
 
         // CSS destination (optional).
         $css_path = '';
-        if ($meta['has_css'] && ! empty($meta['css_file'])) {
-            $css_path = self::validate_asset_path($meta['css_file'], 'css');
+        if ($meta['has_css']) {
+            $css_path = AWB_USER_PATTERNS_PATH . 'css/' . $slug . '.css';
+            self::assert_path_within($css_path, AWB_USER_PATTERNS_PATH, 'CSS asset');
         }
 
         // JS destination (optional).
         $js_path = '';
-        if ($meta['has_js'] && ! empty($meta['js_file'])) {
-            $js_path = self::validate_asset_path($meta['js_file'], 'js');
+        if ($meta['has_js']) {
+            $js_path = AWB_USER_PATTERNS_PATH . 'js/' . $slug . '.js';
+            self::assert_path_within($js_path, AWB_USER_PATTERNS_PATH, 'JS asset');
         }
 
         return [
@@ -378,53 +370,6 @@ class AWB_Pattern_Importer
             'css'         => $css_path,
             'js'          => $js_path,
         ];
-    }
-
-    /**
-     * Validate a relative asset path from metadata (css_file / js_file).
-     *
-     * Rules:
-     *  - No '..' path segments
-     *  - Extension must match expected type (.css or .js)
-     *  - Resolved absolute path must be within AWB_PLUGIN_PATH
-     *
-     * @param  string $relative_path  e.g. 'assets/css/headers/header-dark.css'
-     * @param  string $type           'css' or 'js'
-     * @return string Absolute path if valid.
-     */
-    private static function validate_asset_path(string $relative_path, string $type): string
-    {
-        $normalised = wp_normalize_path($relative_path);
-
-        // Reject any '..' segments — covers traversal attempts.
-        $segments = explode('/', $normalised);
-        foreach ($segments as $segment) {
-            if ('..' === $segment || '.' === $segment) {
-                wp_send_json_error([
-                    'code'    => 'error',
-                    'message' => __('Invalid asset path in metadata.json.', 'awb-starter'),
-                ]);
-            }
-        }
-
-        // Extension must match the declared type.
-        $ext = strtolower(pathinfo($normalised, PATHINFO_EXTENSION));
-        if ($ext !== $type) {
-            wp_send_json_error([
-                'code'    => 'error',
-                /* translators: 1: expected extension, 2: actual extension */
-                'message' => sprintf(
-                    __('Asset path has wrong extension: expected .%1$s, got .%2$s.', 'awb-starter'),
-                    $type,
-                    $ext
-                ),
-            ]);
-        }
-
-        $abs = AWB_PLUGIN_PATH . $normalised;
-        self::assert_path_within($abs, AWB_PLUGIN_PATH, $type . ' asset');
-
-        return $abs;
     }
 
     /**

@@ -72,22 +72,28 @@ class AWB_Pattern_Duplicator
         $meta = self::read_meta($source_path);
 
         // 3. Generate unique slug and title for the clone.
-        $source_dir = trailingslashit(dirname($source_path));
-        $new_slug   = self::generate_unique_slug($meta['slug'], $source_dir);
+        //    Destination is always the user patterns directory.
+        $dest_dir = trailingslashit(AWB_USER_PATTERNS_PATH . 'patterns/' . dirname($meta['slug'] ?? ''));
+        // Ensure the destination directory exists.
+        if (! wp_mkdir_p($dest_dir)) {
+            return new WP_Error('mkdir_failed', __('Could not create destination directory.', 'awb-starter'));
+        }
+
+        $new_slug = self::generate_unique_slug($meta['slug'], $dest_dir);
         if (is_wp_error($new_slug)) {
             return $new_slug;
         }
 
         $new_title = self::generate_title($meta['title']);
 
-        // 4. Rewrite the header block inside the cloned content.
+        // 4. Rewrite headers.
         $clone_content = self::rewrite_headers($source_content, $new_title, $new_slug);
         if (is_wp_error($clone_content)) {
             return $clone_content;
         }
 
-        // 5. Write the clone to disk.
-        $new_filepath = $source_dir . $new_slug . '.php';
+        // 5. Write the clone.
+        $new_filepath = $dest_dir . $new_slug . '.php';
 
         $written = self::write_clone($new_filepath, $clone_content);
         if (is_wp_error($written)) {
@@ -178,9 +184,9 @@ class AWB_Pattern_Duplicator
      */
     private static function write_clone(string $filepath, string $content): true|WP_Error
     {
-        // Confirm the destination is within AWB_PATTERNS_PATH before writing.
+        // Confirm the destination is within AWB_USER_PATTERNS_PATH before writing.
         $norm_dest = wp_normalize_path($filepath);
-        $norm_root = wp_normalize_path(trailingslashit(AWB_PATTERNS_PATH));
+        $norm_root = wp_normalize_path(trailingslashit(AWB_USER_PATTERNS_PATH));
 
         if (! str_starts_with($norm_dest, $norm_root)) {
             return new WP_Error(
@@ -234,38 +240,32 @@ class AWB_Pattern_Duplicator
     // -------------------------------------------------------------------------
 
     /**
-     * Generate a unique slug for the clone.
+     * Generate a unique slug for the clone, checking both filesystem
+     * and the combined pattern file map (core + user).
      *
-     * Strips any existing '-copy' or '-copy-N' suffix from the source slug
-     * before appending '-copy', preventing 'header-dark-copy-copy' chains.
-     *
-     * Uniqueness is verified against:
-     *   1. The filesystem  — no existing .php file with that name in the same dir.
-     *   2. The pattern map — AWB_Pattern_Loader::$pattern_files keys.
-     *
-     * @param string $source_slug  Sanitised slug from the source file (without 'awb/' prefix).
-     * @param string $dir          Absolute path to the source directory (trailing slash).
-     * @return string|WP_Error     New unique slug, or WP_Error if all 99 attempts are taken.
+     * @param string $source_slug
+     * @param string $dir          Destination directory.
+     * @return string|WP_Error
      */
     private static function generate_unique_slug(string $source_slug, string $dir): string|WP_Error
     {
-        // Strip any existing -copy(-N)? suffix to get a clean base.
         $base = preg_replace('/-copy(-\d+)?$/', '', $source_slug);
 
-        $existing_files   = AWB_Pattern_Loader::$pattern_files;
+        // Combine core and user file maps.
+        $existing = AWB_Pattern_Loader::$pattern_files;
 
         for ($i = 1; $i <= self::MAX_COPY_ATTEMPTS; $i++) {
             $candidate = (1 === $i)
                 ? $base . '-copy'
                 : $base . '-copy-' . $i;
 
-            // Filesystem check — covers files written after the last init.
+            // Check filesystem (user patterns dir).
             if (file_exists($dir . $candidate . '.php')) {
                 continue;
             }
 
-            // Registry check — covers patterns registered from outside patterns/.
-            if (array_key_exists('awb/' . $candidate, $existing_files)) {
+            // Check registry for both core and user patterns.
+            if (array_key_exists('awb/' . $candidate, $existing)) {
                 continue;
             }
 

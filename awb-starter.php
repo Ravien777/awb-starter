@@ -22,20 +22,16 @@ define('AWB_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('AWB_PLUGIN_URL',  plugin_dir_url(__FILE__));
 
 /**
- * Absolute path to the patterns directory, with trailing slash.
- *
- * Single source of truth used by:
- *  - AWB_Pattern_Loader   (registration + file-path map)
- *  - AWB_Pattern_Exporter (ZIP generation)         — Step 2
- *  - AWB_Pattern_Importer (ZIP extraction / write) — Step 4
- *  - admin-settings.php   (Pattern Library tab scan)
- *
- * Previously each component derived this independently via
- * AWB_PLUGIN_PATH . 'patterns' or plugin_dir_path(dirname(__FILE__)) . 'patterns/'.
- * Both resolved to the same location; this constant makes it explicit and
- * ensures import/export always write to the same directory the loader reads.
+ * Absolute path to the patterns directory shipped with the plugin.
  */
 define('AWB_PATTERNS_PATH', AWB_PLUGIN_PATH . 'patterns/');
+
+/**
+ * User‑writable location for imported/duplicated patterns.
+ * Uses the WordPress uploads directory so content survives plugin updates.
+ */
+define('AWB_USER_PATTERNS_PATH', WP_CONTENT_DIR . '/uploads/awb-patterns/');
+define('AWB_USER_PATTERNS_URL',  WP_CONTENT_URL . '/uploads/awb-patterns/');
 
 // Autoload support for classes in /includes/.
 spl_autoload_register(function ($class) {

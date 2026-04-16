@@ -1,5 +1,6 @@
 *.env
 awb-starter.md
+next-step.md
 .git 
 node_modules
 vendor
