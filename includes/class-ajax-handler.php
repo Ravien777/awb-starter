@@ -358,21 +358,65 @@ class AWB_Ajax_Handler
             wp_send_json_error(['message' => __('This pattern cannot be edited.', 'awb-starter')], 403);
         }
 
+        $files = [];
+
+        // PHP file
         $file_path = AWB_Pattern_Loader::$pattern_files[$pattern_name] ?? '';
-        if (!$file_path || !file_exists($file_path)) {
-            wp_send_json_error(['message' => __('Pattern file not found.', 'awb-starter')], 404);
+        if ($file_path && file_exists($file_path) && $this->is_path_within($file_path, AWB_USER_PATTERNS_PATH)) {
+            $content = file_get_contents($file_path);
+            if (false !== $content) {
+                $files['php'] = [
+                    'content' => $content,
+                    'label'   => 'PHP',
+                    'mode'    => 'application/x-httpd-php'
+                ];
+            }
         }
 
-        if (!$this->is_path_within($file_path, AWB_USER_PATTERNS_PATH)) {
-            wp_send_json_error(['message' => __('Security violation.', 'awb-starter')], 403);
+        // CSS & JS assets
+        $assets = AWB_Pattern_Loader::$pattern_assets[$pattern_name] ?? [];
+        $slug = str_replace('awb/', '', $pattern_name);
+
+        // Helper to resolve full path from asset URL.
+        $get_asset_path = function ($rel_path) {
+            if (empty($rel_path)) return '';
+            $abs = AWB_USER_PATTERNS_PATH . ltrim(str_replace(AWB_USER_PATTERNS_URL, '', $rel_path), '/');
+            return $abs;
+        };
+
+        if (! empty($assets['css'])) {
+            $css_path = $get_asset_path($assets['css']);
+            if ($css_path && file_exists($css_path) && $this->is_path_within($css_path, AWB_USER_PATTERNS_PATH)) {
+                $content = file_get_contents($css_path);
+                if (false !== $content) {
+                    $files['css'] = [
+                        'content' => $content,
+                        'label'   => 'CSS',
+                        'mode'    => 'text/css'
+                    ];
+                }
+            }
         }
 
-        $content = file_get_contents($file_path);
-        if (false === $content) {
-            wp_send_json_error(['message' => __('Could not read file.', 'awb-starter')], 500);
+        if (! empty($assets['js'])) {
+            $js_path = $get_asset_path($assets['js']);
+            if ($js_path && file_exists($js_path) && $this->is_path_within($js_path, AWB_USER_PATTERNS_PATH)) {
+                $content = file_get_contents($js_path);
+                if (false !== $content) {
+                    $files['js'] = [
+                        'content' => $content,
+                        'label'   => 'JavaScript',
+                        'mode'    => 'text/javascript'
+                    ];
+                }
+            }
         }
 
-        wp_send_json_success(['content' => $content]);
+        if (empty($files)) {
+            wp_send_json_error(['message' => __('No editable files found.', 'awb-starter')], 404);
+        }
+
+        wp_send_json_success(['files' => $files]);
     }
 
     public function save_pattern_source(): void
@@ -387,8 +431,6 @@ class AWB_Ajax_Handler
         }
 
         $pattern_name = sanitize_text_field($_POST['pattern'] ?? '');
-        $new_content  = $_POST['content'] ?? '';
-
         if (empty($pattern_name) || strpos($pattern_name, 'awb/') !== 0) {
             wp_send_json_error(['message' => __('Invalid pattern', 'awb-starter')], 400);
         }
@@ -398,13 +440,9 @@ class AWB_Ajax_Handler
             wp_send_json_error(['message' => __('This pattern cannot be edited.', 'awb-starter')], 403);
         }
 
-        $file_path = AWB_Pattern_Loader::$pattern_files[$pattern_name] ?? '';
-        if (!$file_path || !file_exists($file_path)) {
-            wp_send_json_error(['message' => __('Pattern file not found.', 'awb-starter')], 404);
-        }
-
-        if (!$this->is_path_within($file_path, AWB_USER_PATTERNS_PATH)) {
-            wp_send_json_error(['message' => __('Security violation.', 'awb-starter')], 403);
+        $files_data = $_POST['files'] ?? [];
+        if (! is_array($files_data)) {
+            wp_send_json_error(['message' => __('Invalid files data.', 'awb-starter')], 400);
         }
 
         global $wp_filesystem;
@@ -413,10 +451,51 @@ class AWB_Ajax_Handler
             WP_Filesystem();
         }
 
-        if (!$wp_filesystem->put_contents($file_path, $new_content, FS_CHMOD_FILE)) {
-            wp_send_json_error(['message' => __('Could not write file.', 'awb-starter')], 500);
+        $slug = str_replace('awb/', '', $pattern_name);
+        $assets = AWB_Pattern_Loader::$pattern_assets[$pattern_name] ?? [];
+
+        $get_asset_path = function ($rel_path) {
+            if (empty($rel_path)) return '';
+            $abs = AWB_USER_PATTERNS_PATH . ltrim(str_replace(AWB_USER_PATTERNS_URL, '', $rel_path), '/');
+            return $abs;
+        };
+
+        $saved = 0;
+
+        // Save PHP file
+        if (isset($files_data['php'])) {
+            $php_path = AWB_Pattern_Loader::$pattern_files[$pattern_name] ?? '';
+            if ($php_path && $this->is_path_within($php_path, AWB_USER_PATTERNS_PATH)) {
+                if ($wp_filesystem->put_contents($php_path, $files_data['php'], FS_CHMOD_FILE)) {
+                    $saved++;
+                }
+            }
         }
 
-        wp_send_json_success(['message' => __('Pattern saved.', 'awb-starter')]);
+        // Save CSS file
+        if (isset($files_data['css']) && ! empty($assets['css'])) {
+            $css_path = $get_asset_path($assets['css']);
+            if ($css_path && $this->is_path_within($css_path, AWB_USER_PATTERNS_PATH)) {
+                if ($wp_filesystem->put_contents($css_path, $files_data['css'], FS_CHMOD_FILE)) {
+                    $saved++;
+                }
+            }
+        }
+
+        // Save JS file
+        if (isset($files_data['js']) && ! empty($assets['js'])) {
+            $js_path = $get_asset_path($assets['js']);
+            if ($js_path && $this->is_path_within($js_path, AWB_USER_PATTERNS_PATH)) {
+                if ($wp_filesystem->put_contents($js_path, $files_data['js'], FS_CHMOD_FILE)) {
+                    $saved++;
+                }
+            }
+        }
+
+        if ($saved === 0) {
+            wp_send_json_error(['message' => __('No files were saved.', 'awb-starter')], 500);
+        }
+
+        wp_send_json_success(['message' => __('Pattern files saved.', 'awb-starter')]);
     }
 }

@@ -178,6 +178,11 @@ class AWB_Asset_Loader
                 ]
             );
 
+            // CodeMirror for pattern editing.
+            wp_enqueue_code_editor(['type' => 'application/x-httpd-php']);
+            wp_enqueue_script('wp-theme-plugin-editor');
+            wp_enqueue_style('wp-codemirror');
+
             // Store tab assets
             if (isset($_GET['tab']) && 'store' === $_GET['tab']) {
                 $this->enqueue_style('awb-admin-store', 'assets/css/admin-store.css', ['awb-starter-admin']);

@@ -21,6 +21,11 @@
 (function () {
   "use strict";
 
+  // Global CodeMirror instance for pattern editing.
+  var codeMirrorEditor = null;
+  // Global editor instances for tabbed editing.
+  var editorInstances = {};
+
   document.addEventListener("DOMContentLoaded", function () {
     initExport();
     initImport();
@@ -506,7 +511,7 @@
         btn.disabled = false;
         btn.textContent = originalLabel;
         if (data.success) {
-          openEditModal(patternName, data.data.content);
+          openEditModal(patternName, data.data.files);
         } else {
           alert(data.data?.message || "Could not load pattern.");
         }
@@ -518,33 +523,63 @@
       });
   }
 
-  function openEditModal(patternName, content) {
+  function openEditModal(patternName, files) {
     var modal = document.getElementById("awb-edit-modal");
     if (!modal) {
       modal = createEditModal();
       document.body.appendChild(modal);
     }
 
-    var textarea = modal.querySelector(".awb-edit-modal__textarea");
-    textarea.value = content;
+    // Clear any existing tabs/content
+    var tabsContainer = modal.querySelector(".awb-edit-modal__tabs");
+    var body = modal.querySelector(".awb-modal__body");
+    tabsContainer.innerHTML = "";
+    // Remove previous editor containers
+    body.querySelectorAll(".awb-editor-container").forEach((el) => el.remove());
+
+    // Create a container for the active editor
+    var editorContainer = document.createElement("div");
+    editorContainer.className = "awb-editor-container";
+    body.appendChild(editorContainer);
+
+    // Build tabs
+    var fileTypes = Object.keys(files);
+    fileTypes.forEach(function (type, index) {
+      var tab = document.createElement("button");
+      tab.className = "awb-edit-modal__tab" + (index === 0 ? " is-active" : "");
+      tab.textContent = files[type].label;
+      tab.dataset.type = type;
+      tab.addEventListener("click", function () {
+        switchTab(modal, type, files[type]);
+      });
+      tabsContainer.appendChild(tab);
+    });
+
+    // Initialize editor for the first tab
+    var firstType = fileTypes[0];
+    switchTab(modal, firstType, files[firstType]);
+
     modal.dataset.pattern = patternName;
     modal.hidden = false;
     document.body.style.overflow = "hidden";
 
+    // Save button collects all content
     var saveBtn = modal.querySelector(".awb-edit-modal__save");
     saveBtn.onclick = function () {
-      savePattern(modal, patternName, textarea.value);
+      var allContent = {};
+      for (var type in editorInstances) {
+        allContent[type] = editorInstances[type].getValue();
+      }
+      savePattern(modal, patternName, allContent);
     };
 
+    // Close handlers
     var closeBtn = modal.querySelector(".awb-modal__close");
     closeBtn.onclick = closeEditModal;
-
     var cancelBtn = modal.querySelector(".awb-edit-modal__cancel");
     cancelBtn.onclick = closeEditModal;
-
     modal.querySelector(".awb-modal__backdrop").onclick = closeEditModal;
 
-    // Close on Escape
     function escHandler(e) {
       if (e.key === "Escape") {
         closeEditModal();
@@ -558,6 +593,13 @@
     var modal = document.getElementById("awb-edit-modal");
     if (modal) modal.hidden = true;
     document.body.style.overflow = "";
+    // Optional: destroy editors to free memory
+    for (var type in editorInstances) {
+      if (editorInstances[type].toTextArea) {
+        editorInstances[type].toTextArea();
+      }
+    }
+    editorInstances = {};
   }
 
   function createEditModal() {
@@ -572,8 +614,9 @@
                 <h2 class="awb-modal__title">Edit Pattern</h2>
                 <button class="awb-modal__close" aria-label="Close">✕</button>
             </header>
+            <div class="awb-edit-modal__tabs" role="tablist"></div>
             <div class="awb-modal__body">
-                <textarea class="awb-edit-modal__textarea" spellcheck="false"></textarea>
+                <!-- Editor container will be inserted dynamically -->
             </div>
             <footer class="awb-modal__footer">
                 <button class="awb-btn awb-btn--outline awb-edit-modal__cancel">Cancel</button>
@@ -584,7 +627,55 @@
     return div;
   }
 
-  function savePattern(modal, patternName, content) {
+  function switchTab(modal, type, fileInfo) {
+    // Update active tab styling
+    modal.querySelectorAll(".awb-edit-modal__tab").forEach(function (tab) {
+      tab.classList.toggle("is-active", tab.dataset.type === type);
+    });
+
+    var container = modal.querySelector(".awb-editor-container");
+    container.innerHTML = ""; // Clear previous editor
+
+    // If editor instance already exists, just refresh; otherwise create
+    if (editorInstances[type]) {
+      editorInstances[type].refresh();
+      container.appendChild(editorInstances[type].getWrapperElement());
+    } else {
+      // Create a new textarea for CodeMirror
+      var textarea = document.createElement("textarea");
+      textarea.className = "awb-edit-modal__textarea";
+      textarea.value = fileInfo.content;
+      container.appendChild(textarea);
+
+      if (typeof wp !== "undefined" && wp.codeEditor) {
+        var editorSettings = _.clone(wp.codeEditor.defaultSettings);
+        editorSettings.codemirror = _.extend({}, editorSettings.codemirror, {
+          mode: fileInfo.mode,
+          lineNumbers: true,
+          indentUnit: 4,
+          tabSize: 4,
+          lineWrapping: true,
+          autoCloseBrackets: true,
+          matchBrackets: true,
+        });
+        var editor = wp.codeEditor.initialize(textarea, editorSettings);
+        editorInstances[type] = editor.codemirror;
+      } else {
+        // Fallback: store the textarea as a pseudo-editor with getValue()
+        editorInstances[type] = {
+          getValue: function () {
+            return textarea.value;
+          },
+          getWrapperElement: function () {
+            return textarea;
+          },
+          refresh: function () {},
+        };
+      }
+    }
+  }
+
+  function savePattern(modal, patternName, filesContent) {
     var saveBtn = modal.querySelector(".awb-edit-modal__save");
     saveBtn.disabled = true;
     saveBtn.textContent = "Saving…";
@@ -593,7 +684,10 @@
     formData.append("action", "awb_save_pattern_source");
     formData.append("nonce", cfg().editNonce);
     formData.append("pattern", patternName);
-    formData.append("content", content);
+    // Append each file content
+    for (var type in filesContent) {
+      formData.append("files[" + type + "]", filesContent[type]);
+    }
 
     fetch(window.ajaxurl, { method: "POST", body: formData })
       .then(function (r) {
@@ -603,7 +697,7 @@
         saveBtn.disabled = false;
         saveBtn.textContent = "Save Changes";
         if (data.success) {
-          alert("Pattern saved successfully.");
+          alert("Pattern files saved successfully.");
           closeEditModal();
         } else {
           alert(data.data?.message || "Save failed.");

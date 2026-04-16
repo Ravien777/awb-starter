@@ -2033,3 +2033,49 @@ input.awb-editor.awb-api-input {
     border-radius: 8px 8px 0 0;
   }
 }
+
+/* ── Edit Modal Tabs ─────────────────────────────────────────────────────── */
+
+.awb-edit-modal__tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 20px 0;
+  border-bottom: 1px solid #ddd;
+  background: #f8f9fa;
+}
+
+.awb-edit-modal__tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.awb-edit-modal__tab:hover {
+  color: #1a1a1a;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.awb-edit-modal__tab.is-active {
+  color: #007cba;
+  border-bottom-color: #007cba;
+}
+
+.awb-edit-modal__tab:focus-visible {
+  outline: 2px solid #007cba;
+  outline-offset: -2px;
+}
+
+/* Editor container spacing */
+.awb-modal__body .awb-editor-container {
+  padding: 0;
+}
+
+.awb-modal__body .CodeMirror {
+  border-radius: 0 0 4px 4px;
+}

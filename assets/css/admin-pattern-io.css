@@ -234,8 +234,9 @@
 }
 
 .awb-modal__panel--large {
-  width: 800px;
+  width: 1000px;
   height: 600px;
+  max-width: 95vw;
 }
 
 .awb-modal__header {
@@ -348,4 +349,34 @@
   color: #9ca3af;
   border-color: #d1d5db;
   cursor: not-allowed;
+}
+
+/* CodeMirror overrides for pattern editor modal */
+.awb-modal .CodeMirror {
+  height: 500px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  background: #f8f9fa;
+}
+
+.awb-modal .CodeMirror-scroll {
+  min-height: 500px;
+}
+
+.awb-modal .CodeMirror-gutters {
+  background: #f0f0f0;
+  border-right: 1px solid #ddd;
+}
+
+.awb-modal .CodeMirror-linenumber {
+  color: #999;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* Override textarea display when CodeMirror is active */
+.awb-edit-modal__textarea[style*="display: none"] {
+  display: none !important;
+}
 }
