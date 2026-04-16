@@ -48,6 +48,93 @@ class AWB_Pattern_Importer
     // -------------------------------------------------------------------------
 
     /**
+     * Install a pattern from a ZIP file already present on the server.
+     *
+     * @param string $zip_path Absolute path to the ZIP file.
+     * @param bool   $force    Whether to overwrite existing files.
+     * @return array{ success: bool, data?: array, error?: string }
+     */
+    public static function install_from_zip(string $zip_path, bool $force = false): array
+    {
+        // 1. Validate file exists and is readable.
+        if (! is_readable($zip_path)) {
+            return ['success' => false, 'error' => __('ZIP file not readable.', 'awb-starter')];
+        }
+
+        // 2. File size check.
+        $size = filesize($zip_path);
+        if (false === $size || $size > wp_max_upload_size()) {
+            return ['success' => false, 'error' => __('ZIP file exceeds maximum size.', 'awb-starter')];
+        }
+
+        // 3. MIME type check.
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime  = $finfo ? finfo_file($finfo, $zip_path) : '';
+        if ($finfo) {
+            finfo_close($finfo);
+        }
+        $allowed = ['application/zip', 'application/x-zip', 'application/x-zip-compressed'];
+        if (! in_array($mime, $allowed, true)) {
+            return ['success' => false, 'error' => __('File is not a valid ZIP archive.', 'awb-starter')];
+        }
+
+        // 4. Open ZIP.
+        $zip = new ZipArchive();
+        if (true !== $zip->open($zip_path, ZipArchive::RDONLY)) {
+            return ['success' => false, 'error' => __('Could not open ZIP archive.', 'awb-starter')];
+        }
+
+        // 5. Locate prefix and read metadata.
+        $prefix = self::find_prefix($zip);
+        if (! $prefix) {
+            $zip->close();
+            return ['success' => false, 'error' => __('Invalid ZIP structure: metadata.json not found.', 'awb-starter')];
+        }
+
+        $meta = self::read_metadata($zip, $prefix);
+        if (is_wp_error($meta)) {
+            $zip->close();
+            return ['success' => false, 'error' => $meta->get_error_message()];
+        }
+
+        // 6. Build destination paths.
+        $paths = self::build_destination_paths($meta);
+
+        // 7. Collision check.
+        if (! $force) {
+            $collisions = self::find_collisions($paths);
+            if (! empty($collisions)) {
+                $zip->close();
+                return [
+                    'success'   => false,
+                    'collision' => true,
+                    'title'     => $meta['title'],
+                    'slug'      => $meta['slug'],
+                    'files'     => $collisions,
+                ];
+            }
+        }
+
+        // 8. Write files.
+        try {
+            self::write_files($zip, $prefix, $meta, $paths);
+        } catch (Exception $e) {
+            $zip->close();
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+
+        $zip->close();
+        return [
+            'success' => true,
+            'data'    => [
+                'title'   => $meta['title'],
+                'slug'    => $meta['slug'],
+                'message' => sprintf(__('Pattern "%s" installed successfully.', 'awb-starter'), $meta['title']),
+            ],
+        ];
+    }
+
+    /**
      * Process an uploaded pattern ZIP.
      *
      * Reads from $_FILES['awb_pattern_zip'] and $_POST['force'].
@@ -81,47 +168,20 @@ class AWB_Pattern_Importer
         $tmp_path = $_FILES['awb_pattern_zip']['tmp_name'];
         $force    = ! empty($_POST['force']) && '1' === $_POST['force'];
 
-        // 2. File size check.
-        self::assert_file_size($tmp_path);
+        $result = self::install_from_zip($tmp_path, $force);
 
-        // 3. MIME type check.
-        self::assert_mime_type($tmp_path);
-
-        // 4. Open ZIP and locate metadata.json.
-        $zip    = self::open_zip($tmp_path);
-        $prefix = self::find_prefix($zip);
-        $meta   = self::read_metadata($zip, $prefix);
-
-        // 5. Validate metadata and build destination paths.
-        $paths  = self::build_destination_paths($meta);
-
-        // 6. Collision check — before any write.
-        if (! $force) {
-            $collisions = self::find_collisions($paths);
-            if (! empty($collisions)) {
-                $zip->close();
-                wp_send_json_error([
-                    'code'  => 'collision',
-                    'title' => $meta['title'],
-                    'slug'  => $meta['slug'],
-                    'files' => $collisions,
-                ]);
+        if ($result['success']) {
+            wp_send_json_success($result['data']);
+        } else {
+            $error_data = ['message' => $result['error'] ?? __('Import failed.', 'awb-starter')];
+            if (isset($result['collision']) && $result['collision']) {
+                $error_data['code']  = 'collision';
+                $error_data['title'] = $result['title'];
+                $error_data['slug']  = $result['slug'];
+                $error_data['files'] = $result['files'];
             }
+            wp_send_json_error($error_data);
         }
-
-        // 7. Write files.
-        self::write_files($zip, $prefix, $meta, $paths);
-        $zip->close();
-
-        wp_send_json_success([
-            'title'   => $meta['title'],
-            'slug'    => $meta['slug'],
-            'message' => sprintf(
-                /* translators: %s: pattern title */
-                __('Pattern "%s" imported successfully.', 'awb-starter'),
-                $meta['title']
-            ),
-        ]);
     }
 
     // -------------------------------------------------------------------------
@@ -257,48 +317,31 @@ class AWB_Pattern_Importer
      * @param  string     $prefix e.g. 'header-dark/'
      * @return array      Validated and sanitised metadata.
      */
-    private static function read_metadata(ZipArchive $zip, string $prefix): array
+    private static function read_metadata(ZipArchive $zip, string $prefix): array|WP_Error
     {
         // 64 KB limit on the metadata JSON.
         $json = $zip->getFromName($prefix . 'metadata.json', 65536);
 
         if (false === $json || '' === $json) {
-            $zip->close();
-            wp_send_json_error([
-                'code'    => 'error',
-                'message' => __('Could not read metadata.json from ZIP.', 'awb-starter'),
-            ]);
+            return new WP_Error('read_failed', __('Could not read metadata.json from ZIP.', 'awb-starter'));
         }
 
         $raw = json_decode($json, true);
 
         if (! is_array($raw)) {
-            $zip->close();
-            wp_send_json_error([
-                'code'    => 'error',
-                'message' => __('metadata.json is not valid JSON.', 'awb-starter'),
-            ]);
+            return new WP_Error('invalid_json', __('metadata.json is not valid JSON.', 'awb-starter'));
         }
 
         // Required fields.
         foreach (['title', 'slug', 'awb_version'] as $field) {
             if (empty($raw[$field])) {
-                $zip->close();
-                wp_send_json_error([
-                    'code'    => 'error',
-                    /* translators: %s: field name */
-                    'message' => sprintf(__('metadata.json is missing required field: %s', 'awb-starter'), $field),
-                ]);
+                return new WP_Error('missing_field', sprintf(__('metadata.json is missing required field: %s', 'awb-starter'), $field));
             }
         }
 
         // Verify pattern.php exists at the expected location.
         if (false === $zip->locateName($prefix . 'pattern.php')) {
-            $zip->close();
-            wp_send_json_error([
-                'code'    => 'error',
-                'message' => __('Invalid ZIP structure: pattern.php not found.', 'awb-starter'),
-            ]);
+            return new WP_Error('missing_pattern', __('Invalid ZIP structure: pattern.php not found.', 'awb-starter'));
         }
 
         $slug = sanitize_title($raw['slug']);

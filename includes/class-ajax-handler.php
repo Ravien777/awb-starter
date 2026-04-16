@@ -32,6 +32,13 @@ class AWB_Ajax_Handler
 
         // Pattern duplication — clones a pattern file with a new slug.
         add_action('wp_ajax_awb_duplicate_pattern', [$this, 'duplicate_pattern']);
+
+        // Remote pattern installation from store.
+        add_action('wp_ajax_awb_install_remote_pattern', [$this, 'install_remote_pattern']);
+
+        // Pattern editing — get and save source.
+        add_action('wp_ajax_awb_get_pattern_source', [$this, 'get_pattern_source']);
+        add_action('wp_ajax_awb_save_pattern_source', [$this, 'save_pattern_source']);
     }
 
     // -------------------------------------------------------------------------
@@ -254,5 +261,162 @@ class AWB_Ajax_Handler
                 $result['new_title']
             ),
         ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Remote pattern installation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Download and install a pattern from a remote URL.
+     *
+     * POST params:
+     *   nonce    string  WordPress nonce (action: awb_install_remote_pattern)
+     *   url      string  URL to the pattern ZIP file.
+     */
+    public function install_remote_pattern(): void
+    {
+        // Capability check.
+        if (! current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Insufficient permissions.', 'awb-starter')], 403);
+        }
+
+        // Nonce verification.
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (! wp_verify_nonce($nonce, 'awb_install_remote_pattern')) {
+            wp_send_json_error(['message' => __('Security check failed.', 'awb-starter')], 403);
+        }
+
+        $url = esc_url_raw(wp_unslash($_POST['url'] ?? ''));
+        if (empty($url)) {
+            wp_send_json_error(['message' => __('No URL provided.', 'awb-starter')]);
+        }
+
+        // Optional: restrict to trusted domain.
+        $allowed_host = parse_url('https://your-trusted-domain.com', PHP_URL_HOST);
+        if (parse_url($url, PHP_URL_HOST) !== $allowed_host) {
+            wp_send_json_error(['message' => __('Patterns can only be installed from the official repository.', 'awb-starter')]);
+        }
+
+        // Download the ZIP to a temporary file.
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        $tmp_file = download_url($url, 30); // 30-second timeout.
+
+        if (is_wp_error($tmp_file)) {
+            wp_send_json_error(['message' => $tmp_file->get_error_message()]);
+        }
+
+        // Use the importer.
+        $result = AWB_Pattern_Importer::install_from_zip($tmp_file, false);
+
+        // Clean up temp file.
+        @unlink($tmp_file);
+
+        if ($result['success']) {
+            wp_send_json_success($result['data']);
+        } else {
+            $error_data = ['message' => $result['error'] ?? __('Installation failed.', 'awb-starter')];
+            if (isset($result['collision'])) {
+                $error_data['code']  = 'collision';
+                $error_data['title'] = $result['title'];
+                $error_data['slug']  = $result['slug'];
+                $error_data['files'] = $result['files'];
+            }
+            wp_send_json_error($error_data);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Pattern editing
+    // -------------------------------------------------------------------------
+
+    private function is_path_within(string $path, string $root): bool
+    {
+        $norm_path = wp_normalize_path($path);
+        $norm_root = wp_normalize_path(trailingslashit($root));
+        return str_starts_with($norm_path, $norm_root);
+    }
+
+    public function get_pattern_source(): void
+    {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'awb-starter')], 403);
+        }
+
+        $nonce = $_GET['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'awb_edit_pattern')) {
+            wp_send_json_error(['message' => __('Security check failed', 'awb-starter')], 403);
+        }
+
+        $pattern_name = sanitize_text_field($_GET['pattern'] ?? '');
+        if (empty($pattern_name) || strpos($pattern_name, 'awb/') !== 0) {
+            wp_send_json_error(['message' => __('Invalid pattern', 'awb-starter')], 400);
+        }
+
+        $source = AWB_Pattern_Loader::$pattern_source[$pattern_name] ?? 'core';
+        if ($source !== 'user') {
+            wp_send_json_error(['message' => __('This pattern cannot be edited.', 'awb-starter')], 403);
+        }
+
+        $file_path = AWB_Pattern_Loader::$pattern_files[$pattern_name] ?? '';
+        if (!$file_path || !file_exists($file_path)) {
+            wp_send_json_error(['message' => __('Pattern file not found.', 'awb-starter')], 404);
+        }
+
+        if (!$this->is_path_within($file_path, AWB_USER_PATTERNS_PATH)) {
+            wp_send_json_error(['message' => __('Security violation.', 'awb-starter')], 403);
+        }
+
+        $content = file_get_contents($file_path);
+        if (false === $content) {
+            wp_send_json_error(['message' => __('Could not read file.', 'awb-starter')], 500);
+        }
+
+        wp_send_json_success(['content' => $content]);
+    }
+
+    public function save_pattern_source(): void
+    {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'awb-starter')], 403);
+        }
+
+        $nonce = $_POST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'awb_edit_pattern')) {
+            wp_send_json_error(['message' => __('Security check failed', 'awb-starter')], 403);
+        }
+
+        $pattern_name = sanitize_text_field($_POST['pattern'] ?? '');
+        $new_content  = $_POST['content'] ?? '';
+
+        if (empty($pattern_name) || strpos($pattern_name, 'awb/') !== 0) {
+            wp_send_json_error(['message' => __('Invalid pattern', 'awb-starter')], 400);
+        }
+
+        $source = AWB_Pattern_Loader::$pattern_source[$pattern_name] ?? 'core';
+        if ($source !== 'user') {
+            wp_send_json_error(['message' => __('This pattern cannot be edited.', 'awb-starter')], 403);
+        }
+
+        $file_path = AWB_Pattern_Loader::$pattern_files[$pattern_name] ?? '';
+        if (!$file_path || !file_exists($file_path)) {
+            wp_send_json_error(['message' => __('Pattern file not found.', 'awb-starter')], 404);
+        }
+
+        if (!$this->is_path_within($file_path, AWB_USER_PATTERNS_PATH)) {
+            wp_send_json_error(['message' => __('Security violation.', 'awb-starter')], 403);
+        }
+
+        global $wp_filesystem;
+        if (empty($wp_filesystem)) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
+        if (!$wp_filesystem->put_contents($file_path, $new_content, FS_CHMOD_FILE)) {
+            wp_send_json_error(['message' => __('Could not write file.', 'awb-starter')], 500);
+        }
+
+        wp_send_json_success(['message' => __('Pattern saved.', 'awb-starter')]);
     }
 }

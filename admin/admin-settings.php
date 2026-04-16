@@ -20,6 +20,7 @@ $tabs = [
     'scaffold'      => ['label' => 'Site Scaffold',   'icon' => '⬡'],
     'ai'            => ['label' => 'AI Generator',    'icon' => '◎'],
     'patterns'      => ['label' => 'Pattern Library', 'icon' => '▦'],
+    'store'         => ['label' => 'Store',           'icon' => '🛒'],
     'info'          => ['label' => 'About',            'icon' => '◇'],
 ];
 ?>
@@ -893,6 +894,15 @@ $tabs = [
                                             data-pattern="<?php echo esc_attr($exportable_name); ?>">
                                             <?php esc_html_e('Clone', 'awb-starter'); ?>
                                         </button>
+                                        <?php
+                                        $pattern_source = AWB_Pattern_Loader::$pattern_source[$exportable_name] ?? 'core';
+                                        if ($pattern_source === 'user') : ?>
+                                            <button type="button"
+                                                class="awb-btn awb-btn--ghost awb-btn--sm awb-edit-pattern"
+                                                data-pattern="<?php echo esc_attr($exportable_name); ?>">
+                                                <?php esc_html_e('Edit', 'awb-starter'); ?>
+                                            </button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -945,6 +955,45 @@ $tabs = [
                     </div>
                 </div>
             </div><!-- /.awb-import-pattern -->
+
+            <?php /* ═══════════════════════════════════════════════════════
+               Tab: Store
+        ═══════════════════════════════════════════════════════ */ ?>
+        <?php elseif ($active_tab === 'store') : ?>
+            <div class="awb-store">
+                <div class="awb-store__intro">
+                    <h2><?php esc_html_e('Pattern Store', 'awb-starter'); ?></h2>
+                    <p><?php esc_html_e('Install pre‑made patterns from our library with one click.', 'awb-starter'); ?></p>
+                </div>
+
+                <div id="awb-store-grid" class="awb-store-grid">
+                    <!-- Populated via JavaScript -->
+                    <div class="awb-store-loading"><?php esc_html_e('Loading patterns…', 'awb-starter'); ?></div>
+                </div>
+
+                <div id="awb-store-status" class="awb-store-status" hidden></div>
+            </div>
+
+            <!-- Inline template for store card -->
+            <template id="awb-store-card-template">
+                <div class="awb-store-card">
+                    <div class="awb-store-card__image">
+                        <img src="" alt="">
+                    </div>
+                    <div class="awb-store-card__content">
+                        <h3 class="awb-store-card__title"></h3>
+                        <p class="awb-store-card__desc"></p>
+                        <div class="awb-store-card__meta">
+                            <span class="awb-store-card__version"></span>
+                            <span class="awb-store-card__author"></span>
+                        </div>
+                        <button class="awb-btn awb-btn--primary awb-install-pattern" data-url="">
+                            <?php esc_html_e('Install', 'awb-starter'); ?>
+                        </button>
+                        <span class="awb-install-status"></span>
+                    </div>
+                </div>
+            </template>
 
             <?php /* ═══════════════════════════════════════════════════════
                Tab: About

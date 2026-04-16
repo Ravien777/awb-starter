@@ -1,0 +1,103 @@
+/* AWB Starter - Store Tab Styles */
+
+.awb-store {
+  max-width: 1200px;
+}
+
+.awb-store__intro {
+  margin-bottom: 2rem;
+}
+
+.awb-store__intro h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.awb-store__intro p {
+  margin: 0;
+  color: #666;
+}
+
+.awb-store-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.awb-store-loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.awb-store-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  transition: box-shadow 0.2s ease;
+}
+
+.awb-store-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.awb-store-card__image {
+  height: 150px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.awb-store-card__image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+}
+
+.awb-store-card__content {
+  padding: 1rem;
+}
+
+.awb-store-card__title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.awb-store-card__desc {
+  margin: 0 0 1rem 0;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.awb-store-card__meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.awb-install-pattern {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.awb-install-status {
+  display: block;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.awb-store-status {
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}

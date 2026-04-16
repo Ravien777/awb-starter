@@ -25,6 +25,7 @@
     initExport();
     initImport();
     initDuplicate();
+    initEdit();
   });
 
   /* ── Shared config ─────────────────────────────────────────────────────── */
@@ -463,5 +464,155 @@
     // Use a browser alert for errors — duplication errors are rare and
     // an alert is less disruptive than a persistent card-level message.
     window.alert(message);
+  }
+
+  /* =========================================================================
+     EDIT PATTERN
+     ========================================================================= */
+
+  function initEdit() {
+    document.addEventListener("click", function (e) {
+      var btn = e.target.closest(".awb-edit-pattern");
+      if (!btn) return;
+      handleEditClick(btn);
+    });
+  }
+
+  function handleEditClick(btn) {
+    var patternName = btn.dataset.pattern;
+    if (!patternName) return;
+
+    var nonce = cfg().editNonce;
+    if (!nonce) {
+      alert("Edit nonce missing.");
+      return;
+    }
+
+    // Busy state
+    var originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = i18n("loading", "Loading…");
+
+    var url = new URL(window.ajaxurl);
+    url.searchParams.set("action", "awb_get_pattern_source");
+    url.searchParams.set("pattern", patternName);
+    url.searchParams.set("nonce", nonce);
+
+    fetch(url)
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+        if (data.success) {
+          openEditModal(patternName, data.data.content);
+        } else {
+          alert(data.data?.message || "Could not load pattern.");
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+        alert(i18n("networkError", "Network error."));
+      });
+  }
+
+  function openEditModal(patternName, content) {
+    var modal = document.getElementById("awb-edit-modal");
+    if (!modal) {
+      modal = createEditModal();
+      document.body.appendChild(modal);
+    }
+
+    var textarea = modal.querySelector(".awb-edit-modal__textarea");
+    textarea.value = content;
+    modal.dataset.pattern = patternName;
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+
+    var saveBtn = modal.querySelector(".awb-edit-modal__save");
+    saveBtn.onclick = function () {
+      savePattern(modal, patternName, textarea.value);
+    };
+
+    var closeBtn = modal.querySelector(".awb-modal__close");
+    closeBtn.onclick = closeEditModal;
+
+    var cancelBtn = modal.querySelector(".awb-edit-modal__cancel");
+    cancelBtn.onclick = closeEditModal;
+
+    modal.querySelector(".awb-modal__backdrop").onclick = closeEditModal;
+
+    // Close on Escape
+    function escHandler(e) {
+      if (e.key === "Escape") {
+        closeEditModal();
+        document.removeEventListener("keydown", escHandler);
+      }
+    }
+    document.addEventListener("keydown", escHandler);
+  }
+
+  function closeEditModal() {
+    var modal = document.getElementById("awb-edit-modal");
+    if (modal) modal.hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  function createEditModal() {
+    var div = document.createElement("div");
+    div.id = "awb-edit-modal";
+    div.className = "awb-modal";
+    div.setAttribute("role", "dialog");
+    div.innerHTML = `
+        <div class="awb-modal__backdrop"></div>
+        <div class="awb-modal__panel awb-modal__panel--large">
+            <header class="awb-modal__header">
+                <h2 class="awb-modal__title">Edit Pattern</h2>
+                <button class="awb-modal__close" aria-label="Close">✕</button>
+            </header>
+            <div class="awb-modal__body">
+                <textarea class="awb-edit-modal__textarea" spellcheck="false"></textarea>
+            </div>
+            <footer class="awb-modal__footer">
+                <button class="awb-btn awb-btn--outline awb-edit-modal__cancel">Cancel</button>
+                <button class="awb-btn awb-btn--primary awb-edit-modal__save">Save Changes</button>
+            </footer>
+        </div>
+    `;
+    return div;
+  }
+
+  function savePattern(modal, patternName, content) {
+    var saveBtn = modal.querySelector(".awb-edit-modal__save");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving…";
+
+    var formData = new FormData();
+    formData.append("action", "awb_save_pattern_source");
+    formData.append("nonce", cfg().editNonce);
+    formData.append("pattern", patternName);
+    formData.append("content", content);
+
+    fetch(window.ajaxurl, { method: "POST", body: formData })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save Changes";
+        if (data.success) {
+          alert("Pattern saved successfully.");
+          closeEditModal();
+        } else {
+          alert(data.data?.message || "Save failed.");
+        }
+      })
+      .catch(function () {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save Changes";
+        alert(i18n("networkError", "Network error."));
+      });
   }
 })();

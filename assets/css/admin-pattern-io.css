@@ -191,3 +191,161 @@
   border: 1px solid #fca5a5;
   color: #991b1b;
 }
+
+/* ---------------------------------------------------------------------------
+   Edit Pattern Modal
+   --------------------------------------------------------------------------- */
+
+.awb-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.awb-modal[hidden] {
+  display: none;
+}
+
+.awb-modal__backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.awb-modal__panel {
+  position: relative;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.awb-modal__panel--large {
+  width: 800px;
+  height: 600px;
+}
+
+.awb-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.awb-modal__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.awb-modal__close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.awb-modal__close:hover {
+  color: #374151;
+}
+
+.awb-modal__body {
+  flex: 1;
+  padding: 24px;
+  overflow: auto;
+}
+
+.awb-edit-modal__textarea {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+}
+
+.awb-edit-modal__textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.awb-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.awb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.awb-btn--primary {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.awb-btn--primary:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.awb-btn--primary:disabled {
+  background: #9ca3af;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.awb-btn--outline {
+  background: #fff;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.awb-btn--outline:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.awb-btn--outline:disabled {
+  color: #9ca3af;
+  border-color: #d1d5db;
+  cursor: not-allowed;
+}

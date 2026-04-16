@@ -157,6 +157,7 @@ class AWB_Asset_Loader
                     'nonce'          => wp_create_nonce('awb_export_pattern'),
                     'importNonce'    => wp_create_nonce('awb_import_pattern'),
                     'duplicateNonce' => wp_create_nonce('awb_duplicate_pattern'),
+                    'editNonce'      => wp_create_nonce('awb_edit_pattern'),
                     'i18n'           => [
                         'export'          => __('Export',                              'awb-starter'),
                         'exporting'       => __('Exporting…',                          'awb-starter'),
@@ -171,9 +172,20 @@ class AWB_Asset_Loader
                         'duplicate'       => __('Clone',                               'awb-starter'),
                         'duplicating'     => __('Cloning…',                            'awb-starter'),
                         'duplicateError'  => __('Could not clone pattern.',            'awb-starter'),
+                        'edit'            => __('Edit',                                'awb-starter'),
+                        'loading'         => __('Loading…',                           'awb-starter'),
                     ],
                 ]
             );
+
+            // Store tab assets
+            if (isset($_GET['tab']) && 'store' === $_GET['tab']) {
+                $this->enqueue_style('awb-admin-store', 'assets/css/admin-store.css', ['awb-starter-admin']);
+                $this->enqueue_script('awb-admin-store', 'assets/js/admin-store.js', ['awb-starter-admin']);
+                wp_localize_script('awb-admin-store', 'awbStore', [
+                    'nonce' => wp_create_nonce('awb_install_remote_pattern'),
+                ]);
+            }
         }
 
         // ── Block editor (post.php / post-new.php) only ───────────────────────
