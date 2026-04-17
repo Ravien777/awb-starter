@@ -7,12 +7,9 @@
  *
  * @package AWBStarter
  */
-
 if (! defined('ABSPATH')) exit;
-
 $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'css-js';
 $base_url   = admin_url('admin.php?page=awb-starter');
-
 $tabs = [
     'css-js'        => ['label' => 'CSS &amp; JS',    'icon' => '✦'],
     'tokens'        => ['label' => 'Design Tokens',   'icon' => '◈'],
@@ -24,9 +21,8 @@ $tabs = [
     'info'          => ['label' => 'About',            'icon' => '◇'],
 ];
 ?>
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <div class="awb-settings-wrap">
-
     <header class="awb-settings-header">
         <div class="awb-settings-header__logo">
             <span class="awb-logo-mark">AWB</span>
@@ -34,7 +30,6 @@ $tabs = [
         </div>
         <p class="awb-settings-header__tagline">Rapid website creation — patterns, tokens, and tools in one place.</p>
     </header>
-
     <nav class="awb-settings-nav" aria-label="Settings sections">
         <?php foreach ($tabs as $slug => $tab) : ?>
             <a href="<?php echo esc_url($base_url . '&tab=' . $slug); ?>"
@@ -45,41 +40,25 @@ $tabs = [
             </a>
         <?php endforeach; ?>
     </nav>
-
     <div class="awb-settings-body">
-
         <?php if (isset($_GET['settings-updated'])) : ?>
-            <div class="awb-notice awb-notice--success" role="status">
-                <span>&#10003;</span> Settings saved.
-            </div>
+            <div class="awb-notice awb-notice--success" role="status"><span>&#10003;</span> Settings saved.</div>
         <?php endif; ?>
-
         <?php if (isset($_GET['updated']) && $_GET['updated'] === 'true') : ?>
-            <div class="awb-notice awb-notice--success" role="status">
-                <span>&#10003;</span> Design tokens saved.
-            </div>
+            <div class="awb-notice awb-notice--success" role="status"><span>&#10003;</span> Design tokens saved.</div>
         <?php endif; ?>
-
         <?php if (isset($_GET['fonts_updated']) && $_GET['fonts_updated'] === 'true') : ?>
-            <div class="awb-notice awb-notice--success" role="status">
-                <span>&#10003;</span> Fonts uploaded successfully.
-            </div>
+            <div class="awb-notice awb-notice--success" role="status"><span>&#10003;</span> Fonts uploaded successfully.</div>
         <?php endif; ?>
-
         <?php if (isset($_GET['error'])) : ?>
-            <div class="awb-notice awb-notice--error" role="alert">
-                <span>&#9888;</span> <?php echo esc_html(urldecode($_GET['error'])); ?>
-            </div>
+            <div class="awb-notice awb-notice--error" role="alert"><span>&#9888;</span> <?php echo esc_html(urldecode($_GET['error'])); ?></div>
         <?php endif; ?>
-
         <?php /* ═══════════════════════════════════════════════════════
-               Tab: CSS & JS
-        ═══════════════════════════════════════════════════════ */ ?>
+Tab: CSS & JS
+═══════════════════════════════════════════════════════ */ ?>
         <?php if ($active_tab === 'css-js') : ?>
-
             <form method="post" action="options.php" class="awb-form">
                 <?php settings_fields('awb_starter_group'); ?>
-
                 <div class="awb-form__section">
                     <div class="awb-form__section-header">
                         <h2>Anthropic API Key</h2>
@@ -113,7 +92,6 @@ $tabs = [
                         </div>
                     </div>
                 </div>
-
                 <div class="awb-form__section">
                     <div class="awb-form__section-header">
                         <h2>Custom CSS</h2>
@@ -133,7 +111,6 @@ $tabs = [
                             placeholder="/* Your custom CSS here */"><?php echo esc_textarea(get_option('awb_custom_css', '')); ?></textarea>
                     </div>
                 </div>
-
                 <div class="awb-form__section">
                     <div class="awb-form__section-header">
                         <h2>Custom JavaScript</h2>
@@ -152,7 +129,6 @@ $tabs = [
                             placeholder="// Your custom JavaScript here"><?php echo esc_textarea(get_option('awb_custom_js', '')); ?></textarea>
                     </div>
                 </div>
-
                 <div class="awb-form__section">
                     <div class="awb-form__section-header">
                         <h2>Asset Loading Options</h2>
@@ -194,17 +170,14 @@ $tabs = [
                         </label>
                     </div>
                 </div>
-
                 <div class="awb-form__actions">
                     <?php submit_button('Save Changes', 'primary', 'submit', false, ['class' => 'awb-btn awb-btn--primary']); ?>
                 </div>
             </form><!-- /css-js form -->
-
             <?php /* ═══════════════════════════════════════════════════════
-               Tab: Design Tokens
-        ═══════════════════════════════════════════════════════ */ ?>
+Tab: Design Tokens
+═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'tokens') : ?>
-
             <?php
             $token_groups = [
                 'colors' => [
@@ -258,15 +231,12 @@ $tabs = [
                 ],
             ];
             ?>
-
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="awb-form" id="awb-tokens-form">
                 <input type="hidden" name="action" value="awb_save_design_tokens">
                 <?php wp_nonce_field('awb_save_design_tokens_nonce'); ?>
-
                 <div class="awb-tokens-intro">
                     <p>These values are output as <code>:root</code> CSS custom properties on every page. Set them once per project — your patterns and CSS reference them automatically.</p>
                 </div>
-
                 <?php foreach ($token_groups as $group_key => $group) : ?>
                     <div class="awb-form__section">
                         <div class="awb-form__section-header">
@@ -308,7 +278,6 @@ $tabs = [
                         </div>
                     </div>
                 <?php endforeach; ?>
-
                 <div class="awb-form__section awb-form__section--preview">
                     <div class="awb-form__section-header">
                         <h2>Generated output</h2>
@@ -318,17 +287,14 @@ $tabs = [
                         <pre id="awb-token-output"><!-- generated by JS --></pre>
                     </div>
                 </div>
-
                 <div class="awb-form__actions">
                     <?php submit_button('Save Tokens', 'primary', 'submit', false, ['class' => 'awb-btn awb-btn--primary']); ?>
                 </div>
             </form>
-
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
                 enctype="multipart/form-data" class="awb-form awb-form--fonts" id="awb-fonts-form">
                 <input type="hidden" name="action" value="awb_save_font_settings">
                 <?php wp_nonce_field('awb_font_upload_nonce'); ?>
-
                 <div class="awb-form__section">
                     <div class="awb-form__section-header">
                         <h2>Custom Fonts</h2>
@@ -379,37 +345,30 @@ $tabs = [
                     </div>
                 </div>
             </form>
-
             <?php /* ═══════════════════════════════════════════════════════
-               Tab: Header & Footer Switcher
-        ═══════════════════════════════════════════════════════ */ ?>
+Tab: Header & Footer Switcher
+═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'header-footer') :
-
             // Retrieve saved state.
             $hf_header_type  = get_option(AWB_Header_Switcher::OPTION_HEADER_TYPE,  'none');
             $hf_header_value = get_option(AWB_Header_Switcher::OPTION_HEADER_VALUE, '');
             $hf_footer_type  = get_option(AWB_Header_Switcher::OPTION_FOOTER_TYPE,  'none');
             $hf_footer_value = get_option(AWB_Header_Switcher::OPTION_FOOTER_VALUE, '');
-
             $hf_header_patterns = AWB_Header_Switcher::get_awb_patterns('header');
             $hf_footer_patterns = AWB_Header_Switcher::get_awb_patterns('footer');
             $hf_reusable_blocks = AWB_Header_Switcher::get_reusable_blocks();
         ?>
-
             <div class="awb-header-footer">
-
                 <!--
-                    NOTE: No wp_nonce_field() here. The nonce is injected via
-                    wp_localize_script() in AWB_Asset_Loader::enqueue_admin_assets()
-                    as awbHeaderFooter.nonce and read by admin-header-footer.js.
-                    A form-field nonce would never be read by the AJAX save path.
-                -->
-
+NOTE: No wp_nonce_field() here. The nonce is injected via
+wp_localize_script() in AWB_Asset_Loader::enqueue_admin_assets()
+as awbHeaderFooter.nonce and read by admin-header-footer.js.
+A form-field nonce would never be read by the AJAX save path.
+-->
                 <!-- ── Header ── -->
                 <div class="awb-hf-section awb-card">
                     <h2><?php esc_html_e('Site Header', 'awb-starter'); ?></h2>
                     <p class="description"><?php esc_html_e('Replace your theme\'s default header. Choose a plugin pattern or any reusable block you\'ve built in the editor.', 'awb-starter'); ?></p>
-
                     <table class="form-table" role="presentation">
                         <tr>
                             <th scope="row">
@@ -423,7 +382,6 @@ $tabs = [
                                 </select>
                             </td>
                         </tr>
-
                         <!-- Pattern picker row -->
                         <tr id="awb-header-row-pattern" <?php echo 'pattern' !== $hf_header_type ? 'hidden' : ''; ?>>
                             <th scope="row">
@@ -445,7 +403,6 @@ $tabs = [
                                 <?php endif; ?>
                             </td>
                         </tr>
-
                         <!-- Reusable block picker row -->
                         <tr id="awb-header-row-block" <?php echo 'block' !== $hf_header_type ? 'hidden' : ''; ?>>
                             <th scope="row">
@@ -480,12 +437,10 @@ $tabs = [
                         </tr>
                     </table>
                 </div><!-- /.awb-card (header) -->
-
                 <!-- ── Footer ── -->
                 <div class="awb-hf-section awb-card">
                     <h2><?php esc_html_e('Site Footer', 'awb-starter'); ?></h2>
                     <p class="description"><?php esc_html_e('Replace your theme\'s default footer with a plugin pattern or a reusable block.', 'awb-starter'); ?></p>
-
                     <table class="form-table" role="presentation">
                         <tr>
                             <th scope="row">
@@ -499,7 +454,6 @@ $tabs = [
                                 </select>
                             </td>
                         </tr>
-
                         <!-- Pattern picker row -->
                         <tr id="awb-footer-row-pattern" <?php echo 'pattern' !== $hf_footer_type ? 'hidden' : ''; ?>>
                             <th scope="row">
@@ -521,7 +475,6 @@ $tabs = [
                                 <?php endif; ?>
                             </td>
                         </tr>
-
                         <!-- Reusable block picker row -->
                         <tr id="awb-footer-row-block" <?php echo 'block' !== $hf_footer_type ? 'hidden' : ''; ?>>
                             <th scope="row">
@@ -555,7 +508,6 @@ $tabs = [
                         </tr>
                     </table>
                 </div><!-- /.awb-card (footer) -->
-
                 <!-- ── Save ── -->
                 <p class="submit">
                     <button type="button" id="awb-save-header-footer" class="button button-primary awb-btn awb-btn--primary">
@@ -563,20 +515,16 @@ $tabs = [
                     </button>
                     <span id="awb-header-footer-status" class="awb-save-status" aria-live="polite"></span>
                 </p>
-
             </div><!-- /.awb-header-footer -->
-
             <?php /* ═══════════════════════════════════════════════════════
-               Tab: Site Scaffold
-        ═══════════════════════════════════════════════════════ */ ?>
+Tab: Site Scaffold
+═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'scaffold') : ?>
-
             <div class="awb-scaffold">
                 <div class="awb-scaffold__intro">
                     <h2>One-click site scaffold</h2>
                     <p>Creates standard pages, assigns your preferred header/footer patterns, and sets up navigation — turning a blank WordPress install into a structured site instantly.</p>
                 </div>
-
                 <div class="awb-scaffold__grid">
                     <?php
                     $scaffolds = [
@@ -604,7 +552,6 @@ $tabs = [
                         </div>
                     <?php endforeach; ?>
                 </div>
-
                 <div class="awb-scaffold__options">
                     <h3>Scaffold options</h3>
                     <form method="post" action="options.php" class="awb-form awb-form--inline">
@@ -647,20 +594,16 @@ $tabs = [
                         <?php submit_button('Save options', 'secondary', 'submit', false, ['class' => 'awb-btn awb-btn--outline']); ?>
                     </form>
                 </div>
-
                 <div class="awb-scaffold__log" id="awb-scaffold-log" hidden>
                     <h3>Log</h3>
                     <ul id="awb-scaffold-log-list"></ul>
                 </div>
             </div>
-
             <?php /* ═══════════════════════════════════════════════════════
-               Tab: AI Generator
-        ═══════════════════════════════════════════════════════ */ ?>
+Tab: AI Generator
+═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'ai') : ?>
-
             <?php $has_api_key = ! empty(get_option('awb_ai_api_key', '')); ?>
-
             <?php if (! $has_api_key) : ?>
                 <div class="awb-notice awb-notice--warning">
                     <span>&#9888;</span> No API key found.
@@ -668,13 +611,11 @@ $tabs = [
                     in the CSS &amp; JS tab to use AI generation.
                 </div>
             <?php endif; ?>
-
             <div class="awb-ai <?php echo ! $has_api_key ? 'awb-ai--locked' : ''; ?>">
                 <div class="awb-ai__intro">
                     <h2>AI Content Generator</h2>
                     <p>Describe the page or section you need. Claude will generate WordPress block markup — ready to paste into the editor.</p>
                 </div>
-
                 <div class="awb-ai__layout">
                     <div class="awb-ai__controls">
                         <div class="awb-form__section">
@@ -699,7 +640,6 @@ $tabs = [
                                 </button>
                             </div>
                         </div>
-
                         <div class="awb-form__section">
                             <div class="awb-form__section-header">
                                 <h3>Generate content</h3>
@@ -753,7 +693,6 @@ $tabs = [
                             </div>
                         </div>
                     </div>
-
                     <div class="awb-ai__output">
                         <div class="awb-editor-wrap">
                             <div class="awb-editor-toolbar">
@@ -776,49 +715,30 @@ $tabs = [
                     </div>
                 </div>
             </div>
-
             <?php /* ═══════════════════════════════════════════════════════
-               Tab: Pattern Library
-        ═══════════════════════════════════════════════════════ */ ?>
+Tab: Pattern Library
+═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'patterns') : ?>
-
             <?php
-            $patterns_base = plugin_dir_path(dirname(__FILE__)) . 'patterns/';
-            $all_patterns  = [];
-
-            if (is_dir($patterns_base)) {
-                $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($patterns_base));
-                foreach ($iterator as $file) {
-                    if ($file->getExtension() !== 'php') continue;
-                    $content = file_get_contents($file->getPathname());
-                    preg_match('/Title:\s*(.+)/i',       $content, $title_match);
-                    preg_match('/Slug:\s*(.+)/i',        $content, $slug_match);
-                    preg_match('/Categories:\s*(.+)/i',  $content, $cat_match);
-                    preg_match('/CSS:\s*(.+)/i',         $content, $css_match);
-                    preg_match('/JS:\s*(.+)/i',          $content, $js_match);
-                    preg_match('/Description:\s*(.+)/i', $content, $desc_match);
-
-                    $relative = str_replace($patterns_base, '', $file->getPathname());
-                    $folder   = dirname($relative);
-
-                    $all_patterns[] = [
-                        'file'        => $file->getPathname(),
-                        'relative'    => $relative,
-                        'folder'      => $folder === '.' ? 'root' : $folder,
-                        'title'       => isset($title_match[1])  ? trim($title_match[1])  : basename($file->getPathname(), '.php'),
-                        'slug'        => isset($slug_match[1])   ? trim($slug_match[1])   : '',
-                        'categories'  => isset($cat_match[1])    ? array_map('trim', explode(',', $cat_match[1])) : [],
-                        'has_css'     => ! empty($css_match[1]),
-                        'has_js'      => ! empty($js_match[1]),
-                        'description' => isset($desc_match[1])   ? trim($desc_match[1])   : '',
-                    ];
+            $all_patterns = [];
+            if (! empty(AWB_Pattern_Loader::$pattern_files)) {
+                foreach (AWB_Pattern_Loader::$pattern_files as $registered_name => $filepath) {
+                    if (! file_exists($filepath) || ! is_readable($filepath)) continue;
+                    $meta = get_file_data($filepath, ['title' => 'Title', 'slug' => 'Slug', 'categories' => 'Categories', 'keywords' => 'Keywords', 'description' => 'Description', 'css' => 'CSS', 'js' => 'JS']);
+                    if (empty($meta['title'])) continue;
+                    $source   = AWB_Pattern_Loader::$pattern_source[$registered_name] ?? 'core';
+                    $relative = str_replace(AWB_PLUGIN_PATH, '', wp_normalize_path($filepath));
+                    if ('user' === $source && str_contains($relative, 'uploads/')) {
+                        $relative = str_replace(WP_CONTENT_DIR . '/uploads/', 'uploads/', wp_normalize_path($filepath));
+                    }
+                    $folder = dirname(str_replace(basename($filepath), '', $relative));
+                    $folder = ($folder === '.' || $folder === '') ? 'root' : ltrim($folder, '/');
+                    $all_patterns[] = ['registered_name' => $registered_name, 'file' => $filepath, 'relative' => $relative, 'folder' => $folder, 'title' => sanitize_text_field($meta['title']), 'slug' => sanitize_title($meta['slug'] ?? basename($filepath, '.php')), 'categories' => array_filter(array_map('sanitize_text_field', array_map('trim', explode(',', $meta['categories'] ?? '')))), 'has_css' => ! empty($meta['css']), 'has_js' => ! empty($meta['js']), 'description' => sanitize_text_field($meta['description'] ?? ''), 'source' => $source];
                 }
             }
-
             $folders = array_unique(array_column($all_patterns, 'folder'));
             sort($folders);
             ?>
-
             <div class="awb-patterns">
                 <div class="awb-patterns__toolbar">
                     <h2>Pattern Library <span class="awb-badge"><?php echo count($all_patterns); ?> patterns</span></h2>
@@ -827,25 +747,19 @@ $tabs = [
                         <div class="awb-patterns__filter-groups">
                             <button type="button" class="awb-filter-btn is-active" data-filter="all">All</button>
                             <?php foreach ($folders as $folder) : ?>
-                                <button type="button" class="awb-filter-btn" data-filter="<?php echo esc_attr($folder); ?>">
-                                    <?php echo esc_html(ucfirst($folder)); ?>
-                                </button>
+                                <button type="button" class="awb-filter-btn" data-filter="<?php echo esc_attr($folder); ?>"><?php echo esc_html(ucfirst($folder)); ?></button>
                             <?php endforeach; ?>
                         </div>
                     </div>
                 </div>
-
                 <?php if (empty($all_patterns)) : ?>
-                    <div class="awb-empty-state">
-                        <span class="awb-empty-state__icon">▦</span>
+                    <div class="awb-empty-state"><span class="awb-empty-state__icon">▦</span>
                         <p>No patterns found in <code>patterns/</code>. Drop a <code>.php</code> file there to get started.</p>
                     </div>
                 <?php else : ?>
                     <div class="awb-patterns__grid" id="awb-patterns-grid">
                         <?php foreach ($all_patterns as $pattern) : ?>
-                            <div class="awb-pattern-card"
-                                data-folder="<?php echo esc_attr($pattern['folder']); ?>"
-                                data-title="<?php echo esc_attr(strtolower($pattern['title'])); ?>">
+                            <div class="awb-pattern-card" data-folder="<?php echo esc_attr($pattern['folder']); ?>" data-title="<?php echo esc_attr(strtolower($pattern['title'])); ?>">
                                 <div class="awb-pattern-card__header">
                                     <span class="awb-pattern-card__folder"><?php echo esc_html($pattern['folder']); ?></span>
                                     <div class="awb-pattern-card__badges">
@@ -854,54 +768,27 @@ $tabs = [
                                     </div>
                                 </div>
                                 <h3 class="awb-pattern-card__title"><?php echo esc_html($pattern['title']); ?></h3>
-                                <?php if ($pattern['description']) : ?>
-                                    <p class="awb-pattern-card__desc"><?php echo esc_html($pattern['description']); ?></p>
-                                <?php endif; ?>
+                                <?php if ($pattern['description']) : ?><p class="awb-pattern-card__desc"><?php echo esc_html($pattern['description']); ?></p><?php endif; ?>
                                 <?php if (! empty($pattern['categories'])) : ?>
                                     <div class="awb-pattern-card__cats">
-                                        <?php foreach ($pattern['categories'] as $cat) : ?>
-                                            <span class="awb-tag"><?php echo esc_html($cat); ?></span>
-                                        <?php endforeach; ?>
+                                        <?php foreach ($pattern['categories'] as $cat) : ?><span class="awb-tag"><?php echo esc_html($cat); ?></span><?php endforeach; ?>
                                     </div>
                                 <?php endif; ?>
                                 <div class="awb-pattern-card__footer">
                                     <code class="awb-pattern-card__file"><?php echo esc_html($pattern['relative']); ?></code>
                                     <?php if ($pattern['slug']) : ?>
-                                        <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-copy-slug"
-                                            data-slug="<?php echo esc_attr($pattern['slug']); ?>">Copy slug</button>
+                                        <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-copy-slug" data-slug="<?php echo esc_attr($pattern['slug']); ?>" title="Copy slug"><i class="fas fa-link"></i></button>
                                     <?php endif; ?>
                                     <?php
-                                    /*
-                                     * Export and Clone buttons — only for PHP patterns in the file map.
-                                     * HTML block-templates are excluded: they are AI scaffolds, not in
-                                     * AWB_Pattern_Loader::$pattern_files, and cannot be exported or cloned.
-                                     *
-                                     * $exportable_name = 'awb/' + sanitize_title(slug), matching the
-                                     * key format used by AWB_Pattern_Loader::$pattern_files.
-                                     */
                                     $exportable_name = 'awb/' . sanitize_title($pattern['slug']);
-                                    if (
-                                        $pattern['slug']
-                                        && array_key_exists($exportable_name, AWB_Pattern_Loader::$pattern_files)
-                                    ) : ?>
-                                        <button type="button"
-                                            class="awb-btn awb-btn--ghost awb-btn--sm awb-export-pattern"
-                                            data-pattern="<?php echo esc_attr($exportable_name); ?>">
-                                            <?php esc_html_e('Export', 'awb-starter'); ?>
-                                        </button>
-                                        <button type="button"
-                                            class="awb-btn awb-btn--ghost awb-btn--sm awb-duplicate-pattern"
-                                            data-pattern="<?php echo esc_attr($exportable_name); ?>">
-                                            <?php esc_html_e('Clone', 'awb-starter'); ?>
-                                        </button>
+                                    if ($pattern['slug'] && array_key_exists($exportable_name, AWB_Pattern_Loader::$pattern_files)) : ?>
+                                        <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-export-pattern" data-pattern="<?php echo esc_attr($exportable_name); ?>" title="Export"><i class="fas fa-download"></i></button>
+                                        <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-duplicate-pattern" data-pattern="<?php echo esc_attr($exportable_name); ?>" title="Clone"><i class="fas fa-clone"></i></button>
                                         <?php
                                         $pattern_source = AWB_Pattern_Loader::$pattern_source[$exportable_name] ?? 'core';
                                         if ($pattern_source === 'user') : ?>
-                                            <button type="button"
-                                                class="awb-btn awb-btn--ghost awb-btn--sm awb-edit-pattern"
-                                                data-pattern="<?php echo esc_attr($exportable_name); ?>">
-                                                <?php esc_html_e('Edit', 'awb-starter'); ?>
-                                            </button>
+                                            <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-edit-pattern" data-pattern="<?php echo esc_attr($exportable_name); ?>" title="Edit"><i class="fas fa-edit"></i></button>
+                                            <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-delete-pattern" data-pattern="<?php echo esc_attr($exportable_name); ?>" title="Delete" style="color:#d63638;"><i class="fas fa-trash-alt"></i></button>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                 </div>
@@ -910,19 +797,17 @@ $tabs = [
                     </div>
                 <?php endif; ?>
             </div><!-- /.awb-patterns -->
-
             <!-- ── Import a Pattern ──────────────────────────────────────── -->
             <div class="awb-card awb-import-pattern">
                 <h3><?php esc_html_e('Import a Pattern', 'awb-starter'); ?></h3>
                 <p class="description">
                     <?php esc_html_e('Upload a .zip file exported from AWB Starter. Patterns are installed into the patterns/ directory and available immediately after the next page load.', 'awb-starter'); ?>
                 </p>
-
                 <!--
-                    No <form> tag — FormData is built in JS (admin-pattern-io.js)
-                    and POSTed via fetch(), consistent with other AJAX actions in
-                    this plugin. Nonce is supplied via awbPatternIO.importNonce.
-                -->
+No <form> tag — FormData is built in JS (admin-pattern-io.js)
+and POSTed via fetch(), consistent with other AJAX actions in
+this plugin. Nonce is supplied via awbPatternIO.importNonce.
+-->
                 <div class="awb-import-pattern__form">
                     <input
                         type="file"
@@ -937,10 +822,8 @@ $tabs = [
                         <?php esc_html_e('Import', 'awb-starter'); ?>
                     </button>
                 </div>
-
                 <!-- Status bar: success or error message, shown after fetch() resolves -->
                 <div id="awb-import-status" class="awb-import-status" hidden></div>
-
                 <!-- Collision dialog: shown when imported pattern files already exist -->
                 <div id="awb-import-collision" class="awb-import-collision" hidden>
                     <p class="awb-import-collision__msg"></p>
@@ -955,25 +838,21 @@ $tabs = [
                     </div>
                 </div>
             </div><!-- /.awb-import-pattern -->
-
             <?php /* ═══════════════════════════════════════════════════════
-               Tab: Store
-        ═══════════════════════════════════════════════════════ */ ?>
+Tab: Store
+═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'store') : ?>
             <div class="awb-store">
                 <div class="awb-store__intro">
                     <h2><?php esc_html_e('Pattern Store', 'awb-starter'); ?></h2>
                     <p><?php esc_html_e('Install pre‑made patterns from our library with one click.', 'awb-starter'); ?></p>
                 </div>
-
                 <div id="awb-store-grid" class="awb-store-grid">
                     <!-- Populated via JavaScript -->
                     <div class="awb-store-loading"><?php esc_html_e('Loading patterns…', 'awb-starter'); ?></div>
                 </div>
-
                 <div id="awb-store-status" class="awb-store-status" hidden></div>
             </div>
-
             <!-- Inline template for store card -->
             <template id="awb-store-card-template">
                 <div class="awb-store-card">
@@ -994,12 +873,10 @@ $tabs = [
                     </div>
                 </div>
             </template>
-
             <?php /* ═══════════════════════════════════════════════════════
-               Tab: About
-        ═══════════════════════════════════════════════════════ */ ?>
+Tab: About
+═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'info') : ?>
-
             <div class="awb-about">
                 <div class="awb-about__hero">
                     <span class="awb-about__wordmark">AWB Starter</span>
@@ -1062,9 +939,6 @@ $tabs = [
                     </div>
                 </div>
             </div>
-
         <?php endif; ?>
-
     </div><!-- .awb-settings-body -->
-
 </div><!-- .awb-settings-wrap -->
