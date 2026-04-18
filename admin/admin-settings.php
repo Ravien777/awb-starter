@@ -40,6 +40,7 @@ $tabs = [
             </a>
         <?php endforeach; ?>
     </nav>
+
     <div class="awb-settings-body">
         <?php if (isset($_GET['settings-updated'])) : ?>
             <div class="awb-notice awb-notice--success" role="status"><span>&#10003;</span> Settings saved.</div>
@@ -59,39 +60,72 @@ Tab: CSS & JS
         <?php if ($active_tab === 'css-js') : ?>
             <form method="post" action="options.php" class="awb-form">
                 <?php settings_fields('awb_starter_group'); ?>
-                <div class="awb-form__section">
+
+                <!-- AI Provider Section (Redesigned) -->
+                <div class="awb-form__section awb-ai-provider-section">
                     <div class="awb-form__section-header">
-                        <h2>Anthropic API Key</h2>
-                        <p>Your Anthropic API key for AI content generation. Stored securely and used only for AI requests on this site.</p>
+                        <h2>AI Provider & API Keys</h2>
+                        <p>Select your preferred AI provider. The plugin will use the active provider for all generation requests.</p>
                     </div>
-                    <div class="awb-editor-wrap">
-                        <div class="awb-editor-toolbar">
-                            <span class="awb-editor-lang">API</span>
-                            <button type="button" class="awb-editor-btn" data-action="toggle-visibility" data-target="awb_ai_api_key">Show</button>
-                            <button type="button" class="awb-editor-btn" data-action="clear" data-target="awb_ai_api_key">Clear</button>
-                            <button type="button" class="awb-editor-btn" data-action="copy" data-target="awb_ai_api_key">Copy</button>
-                        </div>
-                        <div class="awb-api-key-wrap">
-                            <input type="password" name="awb_ai_api_key" id="awb_ai_api_key"
-                                class="awb-editor awb-api-input"
-                                value="<?php echo esc_attr(get_option('awb_ai_api_key', '')); ?>"
-                                placeholder="sk-ant-..." autocomplete="off" />
-                            <div class="awb-api-status" id="awb-api-status">
-                                <?php $saved_key = get_option('awb_ai_api_key', ''); ?>
-                                <?php if ($saved_key) : ?>
-                                    <span class="awb-api-status__badge awb-api-status__badge--saved">Key saved</span>
-                                    <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm" id="awb-test-api-key"
-                                        data-nonce="<?php echo esc_attr(wp_create_nonce('awb_test_api_key_nonce')); ?>">
-                                        Test connection
-                                    </button>
-                                    <span class="awb-api-status__result" id="awb-api-test-result"></span>
-                                <?php else : ?>
-                                    <span class="awb-api-status__badge awb-api-status__badge--empty">No key saved</span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+
+                    <div class="awb-provider-selector">
+                        <label for="awb_ai_provider" class="awb-form__label">Active Provider</label>
+                        <select name="awb_ai_provider" id="awb_ai_provider" class="awb-select awb-provider-select">
+                            <?php foreach (AWB_AI_Generator::get_providers() as $slug => $label) : ?>
+                                <option value="<?php echo esc_attr($slug); ?>" <?php selected(get_option('awb_ai_provider', 'anthropic'), $slug); ?>>
+                                    <?php echo esc_html($label); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="awb-api-keys-wrapper">
+                        <?php if (class_exists('AWB_AI_Generator')) : foreach (AWB_AI_Generator::get_providers() as $slug => $label) :
+                                $active = get_option('awb_ai_provider', 'anthropic');
+                                $is_active = ($slug === $active);
+                                $option_key = 'awb_ai_' . $slug . '_key';
+                                $saved = get_option($option_key, '');
+                        ?>
+                                <div class="awb-api-key-card <?php echo $is_active ? 'is-active' : 'is-inactive'; ?>" data-provider="<?php echo esc_attr($slug); ?>">
+                                    <div class="awb-api-key-card__header">
+                                        <h3><?php echo esc_html($label); ?></h3>
+                                        <?php if ($saved) : ?>
+                                            <span class="awb-badge awb-badge--success">Configured</span>
+                                        <?php else : ?>
+                                            <span class="awb-badge awb-badge--warning">Not set</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="awb-api-key-card__body">
+                                        <div class="awb-input-group">
+                                            <input type="password" name="<?php echo esc_attr($option_key); ?>" id="<?php echo esc_attr($option_key); ?>"
+                                                class="awb-input awb-api-input"
+                                                value="<?php echo esc_attr($saved); ?>"
+                                                placeholder="Enter your <?php echo esc_html($label); ?> API key" autocomplete="off" />
+                                            <button type="button" class="awb-input-btn" data-action="toggle-visibility" data-target="<?php echo esc_attr($option_key); ?>" aria-label="Toggle visibility">
+                                                <span class="dashicons dashicons-visibility"></span>
+                                            </button>
+                                            <button type="button" class="awb-input-btn" data-action="copy" data-target="<?php echo esc_attr($option_key); ?>" aria-label="Copy key">
+                                                <span class="dashicons dashicons-clipboard"></span>
+                                            </button>
+                                        </div>
+                                        <div class="awb-api-status">
+                                            <?php if ($saved) : ?>
+                                                <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-test-api-key"
+                                                    data-provider="<?php echo esc_attr($slug); ?>"
+                                                    data-nonce="<?php echo esc_attr(wp_create_nonce('awb_test_ai_api')); ?>">
+                                                    Test Connection
+                                                </button>
+                                                <span class="awb-test-result" data-provider="<?php echo esc_attr($slug); ?>"></span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                        <?php endforeach;
+                        endif; ?>
                     </div>
                 </div>
+
+                <!-- Custom CSS -->
                 <div class="awb-form__section">
                     <div class="awb-form__section-header">
                         <h2>Custom CSS</h2>
@@ -101,16 +135,14 @@ Tab: CSS & JS
                         <div class="awb-editor-toolbar">
                             <span class="awb-editor-lang">CSS</span>
                             <span class="awb-editor-char-count" id="awb-css-count">0 chars</span>
-                            <button type="button" class="awb-editor-btn" data-action="format" data-target="awb_custom_css" data-lang="css">Format</button>
                             <button type="button" class="awb-editor-btn" data-action="clear" data-target="awb_custom_css">Clear</button>
                             <button type="button" class="awb-editor-btn" data-action="copy" data-target="awb_custom_css">Copy</button>
                         </div>
-                        <textarea name="awb_custom_css" id="awb_custom_css"
-                            class="awb-editor" rows="16"
-                            spellcheck="false" autocomplete="off"
-                            placeholder="/* Your custom CSS here */"><?php echo esc_textarea(get_option('awb_custom_css', '')); ?></textarea>
+                        <textarea name="awb_custom_css" id="awb_custom_css" class="awb-editor" rows="16" spellcheck="false" autocomplete="off" placeholder="/* Your custom CSS here */"><?php echo esc_textarea(get_option('awb_custom_css', '')); ?></textarea>
                     </div>
                 </div>
+
+                <!-- Custom JS -->
                 <div class="awb-form__section">
                     <div class="awb-form__section-header">
                         <h2>Custom JavaScript</h2>
@@ -123,12 +155,11 @@ Tab: CSS & JS
                             <button type="button" class="awb-editor-btn" data-action="clear" data-target="awb_custom_js">Clear</button>
                             <button type="button" class="awb-editor-btn" data-action="copy" data-target="awb_custom_js">Copy</button>
                         </div>
-                        <textarea name="awb_custom_js" id="awb_custom_js"
-                            class="awb-editor" rows="16"
-                            spellcheck="false" autocomplete="off"
-                            placeholder="// Your custom JavaScript here"><?php echo esc_textarea(get_option('awb_custom_js', '')); ?></textarea>
+                        <textarea name="awb_custom_js" id="awb_custom_js" class="awb-editor" rows="16" spellcheck="false" autocomplete="off" placeholder="// Your custom JavaScript here"><?php echo esc_textarea(get_option('awb_custom_js', '')); ?></textarea>
                     </div>
                 </div>
+
+                <!-- Asset Loading Options -->
                 <div class="awb-form__section">
                     <div class="awb-form__section-header">
                         <h2>Asset Loading Options</h2>
@@ -170,6 +201,7 @@ Tab: CSS & JS
                         </label>
                     </div>
                 </div>
+
                 <div class="awb-form__actions">
                     <?php submit_button('Save Changes', 'primary', 'submit', false, ['class' => 'awb-btn awb-btn--primary']); ?>
                 </div>
@@ -603,25 +635,32 @@ Tab: Site Scaffold
 Tab: AI Generator
 ═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'ai') : ?>
-            <?php $has_api_key = ! empty(get_option('awb_ai_api_key', '')); ?>
+            <?php
+            // Dynamically check the key for the currently active provider.
+            $active_provider = get_option('awb_ai_provider', 'anthropic');
+            $option_key      = 'awb_ai_' . $active_provider . '_key';
+            $has_api_key     = ! empty(get_option($option_key, ''));
+            $providers       = class_exists('AWB_AI_Generator') ? AWB_AI_Generator::get_providers() : [];
+            $provider_label  = $providers[$active_provider] ?? ucwords($active_provider);
+            ?>
             <?php if (! $has_api_key) : ?>
-                <div class="awb-notice awb-notice--warning">
-                    <span>&#9888;</span> No API key found.
-                    <a href="<?php echo esc_url($base_url . '&tab=css-js'); ?>">Add your Anthropic API key</a>
-                    in the CSS &amp; JS tab to use AI generation.
+                <div class="awb-notice awb-notice--warning" role="alert">
+                    <span>&#9888;</span> No API key configured for <strong><?php echo esc_html($provider_label); ?></strong>.
+                    <a href="<?php echo esc_url($base_url . '&tab=css-js'); ?>">Configure your <?php echo esc_html($provider_label); ?> key</a>
+                    in the CSS &amp; JS tab to enable generation.
                 </div>
             <?php endif; ?>
             <div class="awb-ai <?php echo ! $has_api_key ? 'awb-ai--locked' : ''; ?>">
                 <div class="awb-ai__intro">
                     <h2>AI Content Generator</h2>
-                    <p>Describe the page or section you need. Claude will generate WordPress block markup — ready to paste into the editor.</p>
+                    <p>Describe the page or section you need. <?php echo esc_html($provider_label); ?> will generate WordPress block markup — ready to paste into the editor.</p>
                 </div>
                 <div class="awb-ai__layout">
                     <div class="awb-ai__controls">
                         <div class="awb-form__section">
                             <div class="awb-form__section-header">
                                 <h3>Business context <span class="awb-badge">Improves output</span></h3>
-                                <p>Optional. Provide your business name and what you do — Claude uses this for realistic placeholder copy.</p>
+                                <p>Optional. Provide your business name and what you do — the AI uses this for realistic placeholder copy.</p>
                             </div>
                             <div class="awb-ai-context">
                                 <div class="awb-field">
@@ -684,8 +723,9 @@ Tab: AI Generator
                                 </div>
                             </div>
                             <div class="awb-ai__actions">
+                                <!-- Note: nonce changed to awb_generate_nonce to match AJAX handler -->
                                 <button type="button" class="awb-btn awb-btn--primary" id="awb-ai-generate"
-                                    data-nonce="<?php echo esc_attr(wp_create_nonce('awb_ai_generate_nonce')); ?>"
+                                    data-nonce="<?php echo esc_attr(wp_create_nonce('awb_generate_nonce')); ?>"
                                     <?php echo ! $has_api_key ? 'disabled' : ''; ?>>
                                     <span class="awb-ai-generate__icon">◎</span> Generate
                                 </button>

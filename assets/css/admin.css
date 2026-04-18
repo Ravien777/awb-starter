@@ -387,47 +387,75 @@ textarea.awb-editor {
   color: #374151;
 }
 
-.awb-api-input {
-  font-family: "SFMono-Regular", "Consolas", monospace;
-  letter-spacing: 0.05em;
+.awb-ai-provider-section .awb-api-keys-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
 }
-
-.awb-api-key-wrap {
+.awb-api-key-card {
+  background: #f9f9f9;
+  border: 1px solid #e2e4e7;
+  border-radius: 6px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.awb-api-key-card.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  background: #fff;
+  border-color: #2271b1;
+  box-shadow: 0 2px 8px rgba(34, 113, 177, 0.15);
+}
+.awb-api-key-card__header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
 }
-
-.awb-api-status {
+.awb-api-key-card__header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.awb-input-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.awb-input-group .awb-input {
+  flex: 1;
+}
+.awb-input-btn {
+  background: #f0f0f1;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  background: #f9fafb;
-  border-top: 1px solid #e5e7eb;
 }
-
-.awb-api-status__badge {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
+.awb-input-btn:hover {
+  background: #e0e0e1;
+}
+.awb-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+.awb-badge--success {
+  background: #d1e4d1;
+  color: #1e521e;
+}
+.awb-badge--warning {
+  background: #f6e3b1;
+  color: #7a5a1a;
+}
+.awb-test-result {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
   font-weight: 500;
-}
-
-.awb-api-status__badge--saved {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-
-.awb-api-status__badge--empty {
-  background: #f3f4f6;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
-}
-
-.awb-api-status__result {
-  font-size: 12px;
-  color: #6b7280;
 }
 
 /* ── Toggle switches ──────────────────────────────────────────────────────── */

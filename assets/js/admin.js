@@ -13,6 +13,8 @@
 
   function init() {
     initEditorToolbar();
+    initProviderSwitch(); // New: handles AI provider card visibility
+    initApiTesting(); // New: handles AI key test buttons
     initColorTokenSync();
     initTokenPreview();
     initLibrarySearch();
@@ -27,29 +29,103 @@
   /* ── Editor toolbar (Copy / Clear buttons) ────────────────────────────── */
 
   function initEditorToolbar() {
-    document.querySelectorAll(".awb-editor-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        const action = btn.dataset.action;
-        const target = document.getElementById(btn.dataset.target);
-        if (!target) return;
+    // Handle both old .awb-editor-btn and new .awb-input-btn
+    document
+      .querySelectorAll(".awb-editor-btn, .awb-input-btn")
+      .forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.preventDefault(); // Critical: prevents accidental form submission
+          const action = btn.dataset.action;
+          const targetId = btn.dataset.target;
+          if (!targetId) return;
+          const target = document.getElementById(targetId);
+          if (!target) return;
 
-        if (action === "clear") {
-          if (target.value.trim() === "") return;
-          if (window.confirm("Clear all content in this editor?")) {
-            target.value = "";
-            target.dispatchEvent(new Event("input"));
+          if (action === "toggle-visibility") {
+            const isPassword = target.type === "password";
+            target.type = isPassword ? "text" : "password";
+            const icon = btn.querySelector(".dashicons");
+            if (icon) {
+              icon.className = isPassword
+                ? "dashicons dashicons-hidden"
+                : "dashicons dashicons-visibility";
+            }
+          } else if (action === "clear") {
+            if (target.value.trim() === "") return;
+            if (window.confirm("Clear all content in this editor?")) {
+              target.value = "";
+              target.dispatchEvent(new Event("input"));
+            }
+          } else if (action === "copy") {
+            navigator.clipboard.writeText(target.value).then(function () {
+              const originalHTML = btn.innerHTML;
+              btn.innerHTML = '<span class="dashicons dashicons-yes"></span>';
+              setTimeout(function () {
+                btn.innerHTML = originalHTML;
+              }, 1500);
+            });
           }
-        }
+        });
+      });
+  }
 
-        if (action === "copy") {
-          navigator.clipboard.writeText(target.value).then(function () {
-            const original = btn.textContent;
-            btn.textContent = "Copied!";
-            setTimeout(function () {
-              btn.textContent = original;
-            }, 1600);
-          });
+  function initProviderSwitch() {
+    const select = document.getElementById("awb_ai_provider");
+    if (!select) return;
+
+    function updateCards() {
+      document.querySelectorAll(".awb-api-key-card").forEach(function (card) {
+        if (card.dataset.provider === select.value) {
+          card.classList.remove("is-inactive");
+          card.classList.add("is-active");
+        } else {
+          card.classList.remove("is-active");
+          card.classList.add("is-inactive");
         }
+      });
+    }
+    select.addEventListener("change", updateCards);
+    updateCards(); // Init state
+  }
+
+  function initApiTesting() {
+    document.querySelectorAll(".awb-test-api-key").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const provider = btn.dataset.provider;
+        const nonce = btn.dataset.nonce;
+        const statusEl = document.querySelector(
+          `.awb-test-result[data-provider="${provider}"]`,
+        );
+        if (!statusEl) return;
+
+        btn.disabled = true;
+        btn.textContent = "Testing…";
+        statusEl.textContent = "";
+
+        const fd = new FormData();
+        fd.append("action", "awb_test_ai_api");
+        fd.append("nonce", nonce);
+        fd.append("provider", provider);
+
+        fetch(ajaxurl || "/wp-admin/admin-ajax.php", {
+          method: "POST",
+          body: fd,
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            statusEl.textContent = data.success
+              ? "✓ Key Valid"
+              : "✗ " + (data.data?.message || "Failed");
+            statusEl.style.color = data.success ? "#2e7d32" : "#b00020";
+          })
+          .catch(() => {
+            statusEl.textContent = "✗ Network error";
+            statusEl.style.color = "#b00020";
+          })
+          .finally(() => {
+            btn.disabled = false;
+            btn.textContent = "Test Connection";
+          });
       });
     });
   }

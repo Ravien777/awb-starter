@@ -18,6 +18,7 @@ class AWB_Ajax_Handler
     public function __construct()
     {
         add_action('wp_ajax_awb_generate',               [$this, 'handle_generate']);
+        add_action('wp_ajax_awb_test_ai_api',            [$this, 'test_ai_api']);
         add_action('wp_ajax_awb_save_header_footer',     [$this, 'save_header_footer']);
         add_action('wp_ajax_awb_export_pattern',         [$this, 'export_pattern']);
         add_action('wp_ajax_awb_import_pattern',         [$this, 'import_pattern']);
@@ -32,17 +33,45 @@ class AWB_Ajax_Handler
     {
         check_ajax_referer('awb_generate_nonce', 'nonce');
         if (! current_user_can('edit_posts')) {
-            wp_send_json_error(['message' => 'Unauthorized'], 403);
+            wp_send_json_error(['message' => __('Unauthorized', 'awb-starter')], 403);
         }
         $prompt = sanitize_textarea_field(wp_unslash($_POST['prompt'] ?? ''));
         if (empty($prompt)) {
-            wp_send_json_error(['message' => 'No prompt provided.']);
+            wp_send_json_error(['message' => __('No prompt provided.', 'awb-starter')]);
         }
         $result = AWB_AI_Generator::generate($prompt);
         if (is_wp_error($result)) {
             wp_send_json_error(['message' => $result->get_error_message()]);
         }
         wp_send_json_success(['blocks' => $result]);
+    }
+
+    /**
+     * AJAX: Verify an AI provider API key.
+     *
+     * POST params:
+     *   nonce    string  WordPress nonce (action: awb_test_ai_api)
+     *   provider string  Provider slug (anthropic, openai, etc.)
+     */
+    public function test_ai_api(): void
+    {
+        if (! current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'awb-starter')], 403);
+        }
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (! wp_verify_nonce($nonce, 'awb_test_ai_api')) {
+            wp_send_json_error(['message' => __('Security check failed.', 'awb-starter')], 403);
+        }
+        $provider = isset($_POST['provider']) ? sanitize_text_field(wp_unslash($_POST['provider'])) : '';
+        $providers = array_keys(AWB_AI_Generator::get_providers());
+        if (empty($provider) || ! in_array($provider, $providers, true)) {
+            wp_send_json_error(['message' => __('Invalid provider.', 'awb-starter')], 400);
+        }
+        $result = AWB_AI_Generator::verify_api_key($provider);
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => $result->get_error_message()]);
+        }
+        wp_send_json_success(['message' => __('API key verified successfully.', 'awb-starter')]);
     }
 
     public function save_header_footer(): void

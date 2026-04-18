@@ -136,9 +136,19 @@ class AWB_Asset_Loader
         if ($is_editor_page) {
             $this->enqueue_script('awb-starter-ai-admin', 'assets/js/ai-admin.js', ['awb-starter-admin']);
             if (wp_script_is('awb-starter-ai-admin', 'enqueued')) {
-                wp_localize_script('awb-starter-ai-admin', 'AWB', ['ajaxUrl' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('awb_generate_nonce')]);
+                wp_localize_script('awb-starter-ai-admin', 'AWB', [
+                    'ajaxUrl' => admin_url('admin-ajax.php'),
+                    'nonce'   => wp_create_nonce('awb_generate_nonce'),
+                ]);
             }
         }
+        wp_localize_script(
+            'awb-starter-ai-admin',
+            'awbAiSettings',
+            [
+                'testNonce' => wp_create_nonce('awb_test_ai_api'),
+            ]
+        );
     }
 
     public function enqueue_editor_assets(): void
