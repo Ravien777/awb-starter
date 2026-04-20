@@ -636,10 +636,9 @@ Tab: AI Generator
 ═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'ai') : ?>
             <?php
-            // Dynamically check the key for the currently active provider.
             $active_provider = get_option('awb_ai_provider', 'anthropic');
             $option_key      = 'awb_ai_' . $active_provider . '_key';
-            $has_api_key     = ! empty(get_option($option_key, ''));
+            $has_api_key     = class_exists('AWB_AI_Generator') && ! empty(get_option($option_key, ''));
             $providers       = class_exists('AWB_AI_Generator') ? AWB_AI_Generator::get_providers() : [];
             $provider_label  = $providers[$active_provider] ?? ucwords($active_provider);
             ?>
@@ -673,6 +672,7 @@ Tab: AI Generator
                                     <input type="text" id="awb-ai-business-desc" placeholder="Residential construction and renovations in Paramaribo"
                                         value="<?php echo esc_attr(get_option('awb_ai_business_desc', '')); ?>" />
                                 </div>
+                                <!-- FIXED: Added correct nonce for context saving -->
                                 <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm" id="awb-ai-save-context"
                                     data-nonce="<?php echo esc_attr(wp_create_nonce('awb_save_ai_context_nonce')); ?>">
                                     Save context
@@ -723,7 +723,7 @@ Tab: AI Generator
                                 </div>
                             </div>
                             <div class="awb-ai__actions">
-                                <!-- Note: nonce changed to awb_generate_nonce to match AJAX handler -->
+                                <!-- FIXED: Changed nonce to awb_generate_nonce to match AJAX handler -->
                                 <button type="button" class="awb-btn awb-btn--primary" id="awb-ai-generate"
                                     data-nonce="<?php echo esc_attr(wp_create_nonce('awb_generate_nonce')); ?>"
                                     <?php echo ! $has_api_key ? 'disabled' : ''; ?>>

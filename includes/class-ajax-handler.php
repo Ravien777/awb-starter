@@ -18,6 +18,7 @@ class AWB_Ajax_Handler
     public function __construct()
     {
         add_action('wp_ajax_awb_generate',               [$this, 'handle_generate']);
+        add_action('wp_ajax_awb_save_ai_context',        [$this, 'save_ai_context']);
         add_action('wp_ajax_awb_test_ai_api',            [$this, 'test_ai_api']);
         add_action('wp_ajax_awb_save_header_footer',     [$this, 'save_header_footer']);
         add_action('wp_ajax_awb_export_pattern',         [$this, 'export_pattern']);
@@ -72,6 +73,30 @@ class AWB_Ajax_Handler
             wp_send_json_error(['message' => $result->get_error_message()]);
         }
         wp_send_json_success(['message' => __('API key verified successfully.', 'awb-starter')]);
+    }
+
+    /**
+     * AJAX: Save AI business context.
+     *
+     * POST params:
+     *   nonce          string  WordPress nonce (action: awb_save_ai_context_nonce)
+     *   business_name  string  Business name
+     *   business_desc  string  Business description
+     */
+    public function save_ai_context(): void
+    {
+        if (! current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'awb-starter')], 403);
+        }
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (! wp_verify_nonce($nonce, 'awb_save_ai_context_nonce')) {
+            wp_send_json_error(['message' => __('Security check failed.', 'awb-starter')], 403);
+        }
+        $name = sanitize_text_field(wp_unslash($_POST['business_name'] ?? ''));
+        $desc = sanitize_text_field(wp_unslash($_POST['business_desc'] ?? ''));
+        update_option('awb_ai_business_name', $name);
+        update_option('awb_ai_business_desc', $desc);
+        wp_send_json_success(['message' => __('Business context saved.', 'awb-starter')]);
     }
 
     public function save_header_footer(): void

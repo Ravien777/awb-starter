@@ -24,6 +24,7 @@
     initModal();
     initScaffold();
     initFontDeletion();
+    initAITab(); // New: handles AI Generator tab interactions
   }
 
   /* ── Editor toolbar (Copy / Clear buttons) ────────────────────────────── */
@@ -480,6 +481,145 @@
           });
       });
     });
+  }
+
+  // =========================================================================
+  // AI Generator Tab Handlers
+  // =========================================================================
+  function initAITab() {
+    const saveCtxBtn = document.getElementById("awb-ai-save-context");
+    const genBtn = document.getElementById("awb-ai-generate");
+    const clearBtn = document.getElementById("awb-ai-clear");
+    const copyBtn = document.getElementById("awb-ai-copy-output");
+    const promptEl = document.getElementById("awb-ai-prompt");
+    const outputEl = document.getElementById("awb-ai-output");
+    const statusEl = document.getElementById("awb-ai-status-label");
+    const nameEl = document.getElementById("awb-ai-business-name");
+    const descEl = document.getElementById("awb-ai-business-desc");
+
+    if (!genBtn) return; // Bail if not on AI tab
+
+    // Save Context
+    if (saveCtxBtn && nameEl && descEl) {
+      saveCtxBtn.addEventListener("click", function () {
+        const original = saveCtxBtn.textContent;
+        saveCtxBtn.disabled = true;
+        saveCtxBtn.textContent = "Saving…";
+        const fd = new FormData();
+        fd.append("action", "awb_save_ai_context");
+        fd.append("nonce", saveCtxBtn.dataset.nonce);
+        fd.append("business_name", nameEl.value.trim());
+        fd.append("business_desc", descEl.value.trim());
+
+        fetch(ajaxurl || "/wp-admin/admin-ajax.php", {
+          method: "POST",
+          body: fd,
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success) {
+              saveCtxBtn.textContent = "Saved!";
+              setTimeout(() => {
+                saveCtxBtn.textContent = original;
+                saveCtxBtn.disabled = false;
+              }, 1500);
+            } else {
+              saveCtxBtn.textContent = "Failed";
+              saveCtxBtn.disabled = false;
+              if (statusEl) {
+                statusEl.textContent =
+                  "Context save failed: " + (data.data?.message || "");
+                statusEl.style.color = "#c62828";
+              }
+            }
+          })
+          .catch(() => {
+            saveCtxBtn.textContent = original;
+            saveCtxBtn.disabled = false;
+          });
+      });
+    }
+
+    // Generate
+    genBtn.addEventListener("click", async function () {
+      const prompt = promptEl?.value.trim();
+      if (!prompt) {
+        if (statusEl) {
+          statusEl.textContent = "Please enter a prompt.";
+          statusEl.style.color = "#c62828";
+        }
+        return;
+      }
+      genBtn.disabled = true;
+      genBtn.textContent = "Generating…";
+      if (statusEl) {
+        statusEl.textContent = "Calling AI…";
+        statusEl.style.color = "#666";
+      }
+      outputEl.value = "";
+      if (copyBtn) copyBtn.disabled = true;
+
+      try {
+        const fd = new FormData();
+        fd.append("action", "awb_generate");
+        fd.append("nonce", genBtn.dataset.nonce);
+        fd.append("prompt", prompt);
+
+        const res = await fetch(ajaxurl || "/wp-admin/admin-ajax.php", {
+          method: "POST",
+          body: fd,
+        });
+        const json = await res.json();
+
+        if (json.success) {
+          outputEl.value = json.data.blocks;
+          if (copyBtn) copyBtn.disabled = false;
+          if (statusEl) {
+            statusEl.textContent = "Done!";
+            statusEl.style.color = "#2e7d32";
+          }
+        } else {
+          if (statusEl) {
+            statusEl.textContent =
+              "Error: " + (json.data?.message || "Unknown error");
+            statusEl.style.color = "#c62828";
+          }
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = "Network error: " + err.message;
+          statusEl.style.color = "#c62828";
+        }
+      } finally {
+        genBtn.disabled = false;
+        genBtn.textContent = "Generate";
+      }
+    });
+
+    // Clear
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function () {
+        if (promptEl) promptEl.value = "";
+        if (outputEl) outputEl.value = "";
+        if (statusEl) statusEl.textContent = "";
+        if (copyBtn) copyBtn.disabled = true;
+      });
+    }
+
+    // Copy Output
+    if (copyBtn) {
+      copyBtn.addEventListener("click", function () {
+        if (outputEl?.value) {
+          navigator.clipboard.writeText(outputEl.value).then(() => {
+            const orig = copyBtn.textContent;
+            copyBtn.textContent = "Copied!";
+            setTimeout(() => {
+              copyBtn.textContent = orig;
+            }, 1500);
+          });
+        }
+      });
+    }
   }
 
   function appendLog(list, type, message) {
