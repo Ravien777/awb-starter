@@ -195,65 +195,64 @@
 /* ---------------------------------------------------------------------------
    Edit Pattern Modal
    --------------------------------------------------------------------------- */
-
 .awb-modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   z-index: 100000;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
 }
-
-.awb-modal[hidden] {
+.awb-modal[hidden],
+.awb-modal.is-hidden {
   display: none;
 }
 
 .awb-modal__backdrop {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0, 0, 0, 0.5);
 }
 
 .awb-modal__panel {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  max-width: 90vw;
-  max-height: 90vh;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  box-sizing: border-box;
 }
-
 .awb-modal__panel--large {
   width: 1000px;
-  height: 100%;
+  min-height: 500px;
   max-width: 95vw;
+}
+
+.awb-modal__header,
+.awb-modal__footer {
+  flex-shrink: 0;
 }
 
 .awb-modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* padding: 20px 24px; */
+  padding: 20px 24px;
   border-bottom: 1px solid #e5e7eb;
 }
-
 .awb-modal__title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
   color: #1f2937;
 }
-
 .awb-modal__close {
   background: none;
   border: none;
@@ -262,19 +261,61 @@
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
+  line-height: 1;
   transition: color 0.2s;
 }
-
 .awb-modal__close:hover {
   color: #374151;
 }
 
+/* ✅ Scroll confined strictly here */
 .awb-modal__body {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
   padding: 24px;
-  overflow: unset;
+  box-sizing: border-box;
 }
 
+/* --- Tabs --- */
+.awb-edit-modal__tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+.awb-edit-modal__tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.2s;
+}
+.awb-edit-modal__tab.is-active {
+  background: #f3f4f6;
+  color: #111827;
+  border-color: #e5e7eb;
+}
+.awb-edit-modal__tab:hover:not(.is-active) {
+  color: #374151;
+}
+
+/* --- Loading State --- */
+.awb-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* --- Fallback Textarea --- */
 .awb-edit-modal__textarea {
   width: 100%;
   height: 100%;
@@ -287,22 +328,27 @@
   line-height: 1.5;
   resize: none;
   outline: none;
+  box-sizing: border-box;
 }
-
 .awb-edit-modal__textarea:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
+.awb-edit-modal__textarea.is-hidden,
+.awb-edit-modal__textarea[data-cm-initialized="true"] {
+  display: none !important;
+}
 
+/* --- Footer & Buttons --- */
 .awb-modal__footer {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 12px;
-  /* padding: 16px 24px; */
+  padding: 16px 24px;
   border-top: 1px solid #e5e7eb;
   background: #f9fafb;
 }
-
 .awb-btn {
   display: inline-flex;
   align-items: center;
@@ -315,67 +361,102 @@
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
-
 .awb-btn--primary {
   background: #3b82f6;
   color: #fff;
   border-color: #3b82f6;
 }
-
-.awb-btn--primary:hover {
+.awb-btn--primary:hover:not(:disabled) {
   background: #2563eb;
   border-color: #2563eb;
 }
-
 .awb-btn--primary:disabled {
   background: #9ca3af;
   border-color: #9ca3af;
   cursor: not-allowed;
 }
-
 .awb-btn--outline {
   background: #fff;
   color: #374151;
   border-color: #d1d5db;
 }
-
 .awb-btn--outline:hover {
   background: #f9fafb;
   border-color: #9ca3af;
 }
-
 .awb-btn--outline:disabled {
   color: #9ca3af;
   border-color: #d1d5db;
   cursor: not-allowed;
 }
 
-/* CodeMirror overrides for pattern editor modal */
+/* --- CodeMirror Overrides --- */
 .awb-modal .CodeMirror {
-  min-height: 480px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
   font-size: 13px;
   line-height: 1.5;
   background: #f8f9fa;
+  box-sizing: border-box;
 }
-
 .awb-modal .CodeMirror-scroll {
-  min-height: 500px;
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
 }
-
 .awb-modal .CodeMirror-gutters {
   background: #f0f0f0;
-  border-right: 1px solid #ddd;
+  border-right: 1px solid #d1d5db;
+  padding-right: 4px;
 }
-
 .awb-modal .CodeMirror-linenumber {
-  color: #999;
+  color: #9ca3af;
   font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
 }
-
-/* Override textarea display when CodeMirror is active */
-.awb-edit-modal__textarea[style*="display: none"] {
-  display: none !important;
+/* ---------------------------------------------------------------------------
+Fullscreen Toggle & Header Actions
+--------------------------------------------------------------------------- */
+.awb-modal__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.awb-modal__fullscreen {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  transition:
+    color 0.2s,
+    background-color 0.2s;
+}
+.awb-modal__fullscreen:hover {
+  color: #1f2937;
+  background-color: #f3f4f6;
+}
+/* ---------------------------------------------------------------------------
+Fullscreen State
+--------------------------------------------------------------------------- */
+.awb-modal.is-fullscreen {
+  z-index: 100002;
+  background: transparent;
+  padding: 0;
+}
+.awb-modal.is-fullscreen .awb-modal__panel {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
 }
