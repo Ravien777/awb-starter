@@ -100,12 +100,10 @@ class AWB_Pattern_Loader
         self::$pattern_files[$registered_name]  = $filepath;
         self::$pattern_source[$registered_name] = $source;
         if (! empty($meta['css']) || ! empty($meta['js'])) {
-            // Store relative paths relative to the respective base directory.
-            // The Asset Loader will prepend AWB_PLUGIN_URL or AWB_USER_PATTERNS_URL.
             self::$pattern_assets[$registered_name] = [
                 'css'    => ! empty($meta['css']) ? ltrim($meta['css'], '/') : '',
                 'js'     => ! empty($meta['js'])  ? ltrim($meta['js'], '/')  : '',
-                'source' => $source,
+                'source' => $source, // 'core' or 'user'
             ];
         }
         $categories = ! empty($meta['categories'])

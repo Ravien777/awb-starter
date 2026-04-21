@@ -18,8 +18,8 @@ class AWB_Ajax_Handler
     public function __construct()
     {
         add_action('wp_ajax_awb_generate',               [$this, 'handle_generate']);
-        add_action('wp_ajax_awb_save_ai_context',        [$this, 'save_ai_context']);
         add_action('wp_ajax_awb_test_ai_api',            [$this, 'test_ai_api']);
+        add_action('wp_ajax_awb_save_ai_context',        [$this, 'save_ai_context']);
         add_action('wp_ajax_awb_save_header_footer',     [$this, 'save_header_footer']);
         add_action('wp_ajax_awb_export_pattern',         [$this, 'export_pattern']);
         add_action('wp_ajax_awb_import_pattern',         [$this, 'import_pattern']);
@@ -47,13 +47,6 @@ class AWB_Ajax_Handler
         wp_send_json_success(['blocks' => $result]);
     }
 
-    /**
-     * AJAX: Verify an AI provider API key.
-     *
-     * POST params:
-     *   nonce    string  WordPress nonce (action: awb_test_ai_api)
-     *   provider string  Provider slug (anthropic, openai, etc.)
-     */
     public function test_ai_api(): void
     {
         if (! current_user_can('manage_options')) {
@@ -75,14 +68,6 @@ class AWB_Ajax_Handler
         wp_send_json_success(['message' => __('API key verified successfully.', 'awb-starter')]);
     }
 
-    /**
-     * AJAX: Save AI business context.
-     *
-     * POST params:
-     *   nonce          string  WordPress nonce (action: awb_save_ai_context_nonce)
-     *   business_name  string  Business name
-     *   business_desc  string  Business description
-     */
     public function save_ai_context(): void
     {
         if (! current_user_can('manage_options')) {
@@ -244,10 +229,11 @@ class AWB_Ajax_Handler
                 $files['php'] = ['content' => $content, 'label' => 'PHP', 'mode' => 'application/x-httpd-php'];
             }
         }
-        $assets    = AWB_Pattern_Loader::$pattern_assets[$pattern_name] ?? [];
+        // Read asset paths directly from the pattern header to avoid URL string replacement issues.
+        $meta = get_file_data($file_path, ['css' => 'CSS', 'js' => 'JS']);
         $base_path = trailingslashit(AWB_USER_PATTERNS_PATH);
-        if (! empty($assets['css'])) {
-            $css_path = $base_path . ltrim($assets['css'], '/');
+        if (! empty($meta['css'])) {
+            $css_path = $base_path . ltrim($meta['css'], '/');
             if (file_exists($css_path) && $this->is_path_within($css_path, AWB_USER_PATTERNS_PATH)) {
                 $content = file_get_contents($css_path);
                 if (false !== $content) {
@@ -255,8 +241,8 @@ class AWB_Ajax_Handler
                 }
             }
         }
-        if (! empty($assets['js'])) {
-            $js_path = $base_path . ltrim($assets['js'], '/');
+        if (! empty($meta['js'])) {
+            $js_path = $base_path . ltrim($meta['js'], '/');
             if (file_exists($js_path) && $this->is_path_within($js_path, AWB_USER_PATTERNS_PATH)) {
                 $content = file_get_contents($js_path);
                 if (false !== $content) {
@@ -287,7 +273,8 @@ class AWB_Ajax_Handler
         if ($source !== 'user') {
             wp_send_json_error(['message' => __('This pattern cannot be edited.', 'awb-starter')], 403);
         }
-        $files_data = isset($_POST['files']) ? wp_unslash($_POST['files']) : [];
+        // CRITICAL: Unslash to preserve quotes/apostrophes in code.
+        $files_data = wp_unslash($_POST['files'] ?? []);
         if (! is_array($files_data)) {
             wp_send_json_error(['message' => __('Invalid files data.', 'awb-starter')], 400);
         }
@@ -296,25 +283,38 @@ class AWB_Ajax_Handler
             require_once ABSPATH . 'wp-admin/includes/file.php';
             WP_Filesystem();
         }
+        $php_path = AWB_Pattern_Loader::$pattern_files[$pattern_name] ?? '';
+        // Read header to resolve asset paths safely without URL string replacement.
+        $meta = get_file_data($php_path, ['css' => 'CSS', 'js' => 'JS']);
         $base_path = trailingslashit(AWB_USER_PATTERNS_PATH);
-        $assets    = AWB_Pattern_Loader::$pattern_assets[$pattern_name] ?? [];
-        $saved     = 0;
-        if (isset($files_data['php'])) {
-            $php_path = AWB_Pattern_Loader::$pattern_files[$pattern_name] ?? '';
-            if ($php_path && $this->is_path_within($php_path, AWB_USER_PATTERNS_PATH)) {
-                if ($wp_filesystem->put_contents($php_path, $files_data['php'], FS_CHMOD_FILE)) $saved++;
+        $saved = 0;
+
+        // Helper to write and invalidate OPcache.
+        $write_file = function ($path, $content) use ($wp_filesystem) {
+            if (empty($path) || empty($content)) return false;
+            $success = $wp_filesystem->put_contents($path, $content, FS_CHMOD_FILE);
+            if ($success && function_exists('opcache_invalidate')) {
+                opcache_invalidate($path, true);
             }
+            return $success;
+        };
+
+        // Save PHP
+        if (isset($files_data['php']) && $this->is_path_within($php_path, AWB_USER_PATTERNS_PATH)) {
+            if ($write_file($php_path, $files_data['php'])) $saved++;
         }
-        if (isset($files_data['css']) && ! empty($assets['css'])) {
-            $css_path = $base_path . ltrim($assets['css'], '/');
+        // Save CSS
+        if (isset($files_data['css']) && ! empty($meta['css'])) {
+            $css_path = $base_path . ltrim($meta['css'], '/');
             if ($this->is_path_within($css_path, AWB_USER_PATTERNS_PATH)) {
-                if ($wp_filesystem->put_contents($css_path, $files_data['css'], FS_CHMOD_FILE)) $saved++;
+                if ($write_file($css_path, $files_data['css'])) $saved++;
             }
         }
-        if (isset($files_data['js']) && ! empty($assets['js'])) {
-            $js_path = $base_path . ltrim($assets['js'], '/');
+        // Save JS
+        if (isset($files_data['js']) && ! empty($meta['js'])) {
+            $js_path = $base_path . ltrim($meta['js'], '/');
             if ($this->is_path_within($js_path, AWB_USER_PATTERNS_PATH)) {
-                if ($wp_filesystem->put_contents($js_path, $files_data['js'], FS_CHMOD_FILE)) $saved++;
+                if ($write_file($js_path, $files_data['js'])) $saved++;
             }
         }
         if ($saved === 0) {
@@ -353,16 +353,16 @@ class AWB_Ajax_Handler
         if ($wp_filesystem->exists($php_path) && $wp_filesystem->delete($php_path)) {
             $deleted++;
         }
-        $assets    = AWB_Pattern_Loader::$pattern_assets[$pattern_name] ?? [];
+        $meta = get_file_data($php_path, ['css' => 'CSS', 'js' => 'JS']);
         $base_path = trailingslashit(AWB_USER_PATTERNS_PATH);
-        if (! empty($assets['css'])) {
-            $css_path = $base_path . ltrim($assets['css'], '/');
+        if (! empty($meta['css'])) {
+            $css_path = $base_path . ltrim($meta['css'], '/');
             if ($this->is_path_within($css_path, AWB_USER_PATTERNS_PATH) && $wp_filesystem->exists($css_path) && $wp_filesystem->delete($css_path)) {
                 $deleted++;
             }
         }
-        if (! empty($assets['js'])) {
-            $js_path = $base_path . ltrim($assets['js'], '/');
+        if (! empty($meta['js'])) {
+            $js_path = $base_path . ltrim($meta['js'], '/');
             if ($this->is_path_within($js_path, AWB_USER_PATTERNS_PATH) && $wp_filesystem->exists($js_path) && $wp_filesystem->delete($js_path)) {
                 $deleted++;
             }

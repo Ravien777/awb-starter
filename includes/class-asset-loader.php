@@ -57,24 +57,36 @@ class AWB_Asset_Loader
 
     private function enqueue_pattern_assets(): void
     {
-        if (empty(AWB_Pattern_Loader::$pattern_assets)) return;
+        if (empty(AWB_Pattern_Loader::$pattern_assets)) {
+            return;
+        }
         $post    = get_post();
         $content = $post ? $post->post_content : '';
+
         foreach (AWB_Pattern_Loader::$pattern_assets as $slug => $data) {
             $short_slug = str_replace('awb/', '', $slug);
-            if ($content && strpos($content, $short_slug) === false) continue;
+            // Check if pattern is actually used on this page.
+            if ($content && strpos($content, $short_slug) === false && strpos($content, $slug) === false) {
+                continue;
+            }
+
             $source    = $data['source'] ?? 'core';
             $base_url  = ('user' === $source) ? AWB_USER_PATTERNS_URL : AWB_PLUGIN_URL;
             $base_path = ('user' === $source) ? AWB_USER_PATTERNS_PATH : AWB_PLUGIN_PATH;
+
             if (! empty($data['css'])) {
                 $rel = $data['css'];
                 $abs = $base_path . $rel;
-                if (file_exists($abs)) wp_enqueue_style('awb-pattern-' . $short_slug . '-style', $base_url . $rel, ['awb-starter'], filemtime($abs));
+                if (file_exists($abs)) {
+                    wp_enqueue_style('awb-pattern-' . $short_slug . '-style', $base_url . $rel, ['awb-starter'], filemtime($abs));
+                }
             }
             if (! empty($data['js'])) {
                 $rel = $data['js'];
                 $abs = $base_path . $rel;
-                if (file_exists($abs)) wp_enqueue_script('awb-pattern-' . $short_slug . '-script', $base_url . $rel, ['awb-starter'], filemtime($abs), true);
+                if (file_exists($abs)) {
+                    wp_enqueue_script('awb-pattern-' . $short_slug . '-script', $base_url . $rel, ['awb-starter'], filemtime($abs), true);
+                }
             }
         }
     }

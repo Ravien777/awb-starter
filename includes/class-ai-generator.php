@@ -69,6 +69,129 @@ class AWB_AI_Generator
     }
 
     /**
+     * Build an enriched prompt from structured UI inputs.
+     *
+     * @param array<string, mixed> $inputs User inputs including section_type, style, color_scheme, etc.
+     * @return string The compiled prompt.
+     */
+    public static function build_prompt(array $inputs): string
+    {
+        $section_type = sanitize_text_field($inputs['section_type'] ?? 'hero');
+        $style        = sanitize_text_field($inputs['style'] ?? 'modern');
+        $color_scheme = sanitize_text_field($inputs['color_scheme'] ?? 'light');
+        $description  = sanitize_textarea_field($inputs['description'] ?? '');
+        $has_cta      = ! empty($inputs['has_cta']);
+        $columns      = intval($inputs['columns'] ?? 1);
+        $brand_colors = sanitize_text_field($inputs['brand_colors'] ?? '');
+
+        $prompt = "Create a {$style} WordPress Gutenberg section of type: {$section_type}.\n";
+        $prompt .= "Color scheme: {$color_scheme}.\n";
+
+        if ($columns > 1) {
+            $prompt .= "Use a {$columns}-column layout.\n";
+        }
+
+        if ($has_cta) {
+            $prompt .= "Include a prominent Call-To-Action button.\n";
+        }
+
+        if (! empty($brand_colors)) {
+            $prompt .= "Brand colors to use: {$brand_colors}.\n";
+        }
+
+        if (! empty($description)) {
+            $prompt .= "Additional details: {$description}\n";
+        }
+
+        $prompt .= "Make it visually polished, production-ready, and professional.";
+
+        return $prompt;
+    }
+
+    /**
+     * Generate with a two-pass refinement flow.
+     *
+     * Pass 1: Generate initial draft. Pass 2: Refine for polish and quality.
+     *
+     * @param string $prompt Initial user prompt.
+     * @return string|WP_Error
+     */
+    public static function generate_with_refinement(string $prompt): string|\WP_Error
+    {
+        // Pass 1: Generate initial draft
+        $draft = self::generate($prompt);
+        if (is_wp_error($draft)) {
+            return $draft;
+        }
+
+        // Pass 2: Refine the draft
+        $refine_prompt = "Here is a Gutenberg block section:\n\n{$draft}\n\n"
+            . "Improve it: enhance spacing, visual hierarchy, and styling. "
+            . "Make it more polished and production-ready. "
+            . "Return ONLY the improved block markup.";
+
+        return self::generate($refine_prompt);
+    }
+
+    /**
+     * Get plugin design tokens for the AI model.
+     *
+     * @return string Plugin design tokens information for the AI model.
+     */
+    private static function get_theme_context(): string
+    {
+        $tokens = [
+            '--awb-color-primary' => get_option('awb_token_color_primary', '#1a1a2e'),
+            '--awb-color-secondary' => get_option('awb_token_color_secondary', '#16213e'),
+            '--awb-color-accent' => get_option('awb_token_color_accent', '#e94560'),
+            '--awb-color-text' => get_option('awb_token_color_text', '#1a1a1a'),
+            '--awb-color-bg' => get_option('awb_token_color_bg', '#ffffff'),
+            '--awb-color-border' => 'color-mix(in srgb, ' . get_option('awb_token_color_bg', '#ffffff') . ' 80%, ' . get_option('awb_token_color_text', '#1a1a1a') . ')',
+            '--awb-font-heading' => self::get_font_stack('heading'),
+            '--awb-font-body' => self::get_font_stack('body'),
+            '--awb-font-mono' => get_option('awb_token_font_mono', 'monospace'),
+            '--awb-space-xs' => get_option('awb_token_space_xs', '0.25rem'),
+            '--awb-space-sm' => get_option('awb_token_space_sm', '0.5rem'),
+            '--awb-space-md' => get_option('awb_token_space_md', '1rem'),
+            '--awb-space-lg' => get_option('awb_token_space_lg', '2rem'),
+            '--awb-space-xl' => get_option('awb_token_space_xl', '4rem'),
+            '--awb-radius-sm' => get_option('awb_token_radius_sm', '4px'),
+            '--awb-radius-md' => get_option('awb_token_radius_md', '8px'),
+            '--awb-radius-lg' => get_option('awb_token_radius_lg', '16px'),
+        ];
+
+        $formatted_tokens = array_map(
+            function ($key, $value) {
+                return "{$key}: {$value}";
+            },
+            array_keys($tokens),
+            $tokens
+        );
+
+        return "Available plugin design tokens:\n" . implode(', ', $formatted_tokens) . "\n"
+            . "Prefer these CSS variables over hardcoded values for colors, fonts, spacing, and border radius.\n";
+    }
+
+    /**
+     * Get font stack for headings or body text.
+     *
+     * @param string $type Either 'heading' or 'body'.
+     * @return string Font stack.
+     */
+    private static function get_font_stack(string $type): string
+    {
+        $has_custom_font = get_option('awb_custom_font_regular', '') ||
+            get_option('awb_custom_font_medium', '') ||
+            get_option('awb_custom_font_bold', '');
+
+        $fallback = 'heading' === $type
+            ? get_option('awb_token_font_heading', 'Georgia, serif')
+            : get_option('awb_token_font_body', 'system-ui, sans-serif');
+
+        return $has_custom_font ? "'AWB Custom Font', {$fallback}" : $fallback;
+    }
+
+    /**
      * Verify an API key for a specific provider.
      *
      * @param string $provider Provider slug.
@@ -143,7 +266,28 @@ class AWB_AI_Generator
             return new \WP_Error('invalid_provider', __('Selected provider is unsupported.', 'awb-starter'));
         }
 
-        $system_prompt = __('You are an expert WordPress developer. Respond ONLY with valid Gutenberg block markup. Do not include markdown fences, explanations, or extra text. Just the raw block HTML.', 'awb-starter');
+        $theme_context = self::get_theme_context();
+        $system_prompt = $theme_context . __("You are an expert WordPress developer and UI/UX designer specializing in Gutenberg block markup.
+
+        RULES:
+        - Respond ONLY with valid Gutenberg block HTML. No markdown fences, no explanations.
+        - Use WordPress core blocks where possible (wp:group, wp:columns, wp:cover, wp:buttons, etc.)
+        - Always produce COMPLETE, visually polished sections — never placeholder text like \"Lorem Ipsum\".
+        - Apply inline styles for spacing, typography, and color to ensure the output looks good out of the box.
+        - Use a modern, clean aesthetic: generous padding, clear visual hierarchy, readable font sizes.
+        - Sections must be mobile-responsive using Gutenberg's built-in layout system.
+        - Use semantic HTML inside blocks (h1-h3 for headings, p for paragraphs, etc.)
+        - When using wp:cover or hero sections, always include an overlay and legible text contrast.
+
+        STYLE GUIDELINES:
+        - Padding: sections should have at minimum 60px top/bottom padding
+        - Font sizes: headings ≥ 2rem, body text ≥ 1rem
+        - Colors: use CSS variables like var(--wp--preset--color--primary) where applicable
+        - Buttons: always style with background color, padding, border-radius
+        - Columns: max 3 columns on desktop, stack on mobile
+
+        OUTPUT FORMAT:
+        Raw Gutenberg block comment markup only. Start directly with <!-- wp: ...", 'awb-starter');
         $headers = $config['headers'];
         $auth_header = $config['header_key'];
         $headers[$auth_header] = isset($config['auth_prefix'])
@@ -155,12 +299,14 @@ class AWB_AI_Generator
             ? wp_json_encode([
                 'model'      => $config['model'],
                 'max_tokens' => 4096,
+                'temperature' => 0.7,
                 'system'     => $system_prompt,
                 'messages'   => [['role' => 'user', 'content' => $prompt]],
             ])
             : wp_json_encode([
                 'model'      => $config['model'],
                 'max_tokens' => 4096,
+                'temperature' => 0.7,
                 'messages'   => [
                     ['role' => 'system', 'content' => $system_prompt],
                     ['role' => 'user',   'content' => $prompt],

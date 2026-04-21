@@ -77,24 +77,25 @@ class AWB_Settings
 
     public function register_settings(): void
     {
-        $group = 'awb_starter_group';
+        // ── Group 1: AI, Custom CSS/JS, Asset Loading Toggles ─────────────
+        $ai_css_group = 'awb_starter_ai_css_js_group';
+        register_setting($ai_css_group, 'awb_custom_css', ['sanitize_callback' => 'wp_strip_all_tags', 'default' => '']);
+        register_setting($ai_css_group, 'awb_custom_js',  ['sanitize_callback' => 'wp_strip_all_tags', 'default' => '']);
+        register_setting($ai_css_group, 'awb_ai_provider', ['sanitize_callback' => 'sanitize_text_field', 'default' => 'anthropic']);
 
-        // Core settings
-        register_setting($group, 'awb_custom_css', ['sanitize_callback' => 'wp_strip_all_tags', 'default' => '']);
-        register_setting($group, 'awb_custom_js',  ['sanitize_callback' => 'wp_strip_all_tags', 'default' => '']);
-
-        // AI Settings (Fixed: Now properly registered so options.php saves them)
-        register_setting($group, 'awb_ai_provider', ['sanitize_callback' => 'sanitize_text_field', 'default' => 'anthropic']);
         if (class_exists('AWB_AI_Generator')) {
             foreach (AWB_AI_Generator::get_providers() as $slug => $_) {
-                register_setting($group, 'awb_ai_' . $slug . '_key', [
-                    'sanitize_callback' => 'sanitize_text_field',
-                    'default'           => '',
-                ]);
+                register_setting($ai_css_group, 'awb_ai_' . $slug . '_key', ['sanitize_callback' => 'sanitize_text_field', 'default' => '']);
             }
         }
 
-        // Design token settings
+        // Asset loading toggles
+        foreach (['awb_defer_js', 'awb_minify_css', 'awb_disable_frontend_css'] as $opt) {
+            register_setting($ai_css_group, $opt, ['sanitize_callback' => 'sanitize_text_field', 'default' => '']);
+        }
+
+        // ── Group 2: Design Tokens ────────────────────────────────────────
+        $token_group = 'awb_starter_tokens_group';
         $token_settings = [
             'awb_token_color_primary',
             'awb_token_color_secondary',
@@ -123,15 +124,12 @@ class AWB_Settings
             'awb_token_container_max',
             'awb_token_container_pad',
             'awb_token_transition',
-            'awb_defer_js',
-            'awb_minify_css',
-            'awb_disable_frontend_css',
         ];
         foreach ($token_settings as $setting) {
-            register_setting($group, $setting, ['sanitize_callback' => 'sanitize_text_field', 'default' => '']);
+            register_setting($token_group, $setting, ['sanitize_callback' => 'sanitize_text_field', 'default' => '']);
         }
 
-        // Scaffold settings
+        // ── Group 3: Scaffold ─────────────────────────────────────────────
         $scaffold_settings = ['awb_scaffold_set_homepage', 'awb_scaffold_create_menu', 'awb_scaffold_clean'];
         foreach ($scaffold_settings as $setting) {
             register_setting('awb_scaffold_group', $setting, ['sanitize_callback' => 'sanitize_text_field', 'default' => '']);

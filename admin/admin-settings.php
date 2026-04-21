@@ -59,15 +59,14 @@ Tab: CSS & JS
 ═══════════════════════════════════════════════════════ */ ?>
         <?php if ($active_tab === 'css-js') : ?>
             <form method="post" action="options.php" class="awb-form">
-                <?php settings_fields('awb_starter_group'); ?>
+                <!-- CHANGED: Now uses isolated group to prevent wiping Design Tokens -->
+                <?php settings_fields('awb_starter_ai_css_js_group'); ?>
 
-                <!-- AI Provider Section (Redesigned) -->
-                <div class="awb-form__section awb-ai-provider-section">
+                <div class="awb-form__section">
                     <div class="awb-form__section-header">
                         <h2>AI Provider & API Keys</h2>
                         <p>Select your preferred AI provider. The plugin will use the active provider for all generation requests.</p>
                     </div>
-
                     <div class="awb-provider-selector">
                         <label for="awb_ai_provider" class="awb-form__label">Active Provider</label>
                         <select name="awb_ai_provider" id="awb_ai_provider" class="awb-select awb-provider-select">
@@ -78,7 +77,6 @@ Tab: CSS & JS
                             <?php endforeach; ?>
                         </select>
                     </div>
-
                     <div class="awb-api-keys-wrapper">
                         <?php if (class_exists('AWB_AI_Generator')) : foreach (AWB_AI_Generator::get_providers() as $slug => $label) :
                                 $active = get_option('awb_ai_provider', 'anthropic');
