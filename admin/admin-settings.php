@@ -8,6 +8,7 @@
  * @package AWBStarter
  */
 if (! defined('ABSPATH')) exit;
+
 $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'css-js';
 $base_url   = admin_url('admin.php?page=awb-starter');
 $tabs = [
@@ -21,7 +22,6 @@ $tabs = [
     'info'          => ['label' => 'About',            'icon' => '◇'],
 ];
 ?>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <div class="awb-settings-wrap">
     <header class="awb-settings-header">
         <div class="awb-settings-header__logo">
@@ -30,6 +30,7 @@ $tabs = [
         </div>
         <p class="awb-settings-header__tagline">Rapid website creation — patterns, tokens, and tools in one place.</p>
     </header>
+
     <nav class="awb-settings-nav" aria-label="Settings sections">
         <?php foreach ($tabs as $slug => $tab) : ?>
             <a href="<?php echo esc_url($base_url . '&tab=' . $slug); ?>"
@@ -54,14 +55,14 @@ $tabs = [
         <?php if (isset($_GET['error'])) : ?>
             <div class="awb-notice awb-notice--error" role="alert"><span>&#9888;</span> <?php echo esc_html(urldecode($_GET['error'])); ?></div>
         <?php endif; ?>
+
         <?php /* ═══════════════════════════════════════════════════════
-Tab: CSS & JS
-═══════════════════════════════════════════════════════ */ ?>
+		Tab: CSS & JS
+		═══════════════════════════════════════════════════════ */ ?>
         <?php if ($active_tab === 'css-js') : ?>
             <form method="post" action="options.php" class="awb-form">
                 <!-- CHANGED: Now uses isolated group to prevent wiping Design Tokens -->
                 <?php settings_fields('awb_starter_ai_css_js_group'); ?>
-
                 <div class="awb-form__section">
                     <div class="awb-form__section-header">
                         <h2>AI Provider & API Keys</h2>
@@ -204,9 +205,10 @@ Tab: CSS & JS
                     <?php submit_button('Save Changes', 'primary', 'submit', false, ['class' => 'awb-btn awb-btn--primary']); ?>
                 </div>
             </form><!-- /css-js form -->
+
             <?php /* ═══════════════════════════════════════════════════════
-Tab: Design Tokens
-═══════════════════════════════════════════════════════ */ ?>
+		Tab: Design Tokens
+		═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'tokens') : ?>
             <?php
             $token_groups = [
@@ -225,11 +227,11 @@ Tab: Design Tokens
                 'typography' => [
                     'label'  => 'Typography',
                     'fields' => [
-                        'awb_token_font_heading'    => ['label' => 'Heading font',   'type' => 'text', 'default' => 'Georgia, serif',       'placeholder' => 'Georgia, serif'],
-                        'awb_token_font_body'       => ['label' => 'Body font',      'type' => 'text', 'default' => 'system-ui, sans-serif', 'placeholder' => 'system-ui, sans-serif'],
-                        'awb_token_font_mono'       => ['label' => 'Mono font',      'type' => 'text', 'default' => 'monospace',             'placeholder' => 'monospace'],
-                        'awb_token_font_size_base'  => ['label' => 'Base font size', 'type' => 'text', 'default' => '16px',                  'placeholder' => '16px'],
-                        'awb_token_line_height'     => ['label' => 'Line height',    'type' => 'text', 'default' => '1.6',                   'placeholder' => '1.6'],
+                        'awb_token_font_heading'   => ['label' => 'Heading font',   'type' => 'text', 'default' => 'Georgia, serif',       'placeholder' => 'Georgia, serif'],
+                        'awb_token_font_body'      => ['label' => 'Body font',      'type' => 'text', 'default' => 'system-ui, sans-serif', 'placeholder' => 'system-ui, sans-serif'],
+                        'awb_token_font_mono'      => ['label' => 'Mono font',      'type' => 'text', 'default' => 'monospace',             'placeholder' => 'monospace'],
+                        'awb_token_font_size_base' => ['label' => 'Base font size', 'type' => 'text', 'default' => '16px',                  'placeholder' => '16px'],
+                        'awb_token_line_height'    => ['label' => 'Line height',    'type' => 'text', 'default' => '1.6',                   'placeholder' => '1.6'],
                     ],
                 ],
                 'spacing' => [
@@ -308,6 +310,7 @@ Tab: Design Tokens
                         </div>
                     </div>
                 <?php endforeach; ?>
+
                 <div class="awb-form__section awb-form__section--preview">
                     <div class="awb-form__section-header">
                         <h2>Generated output</h2>
@@ -317,10 +320,12 @@ Tab: Design Tokens
                         <pre id="awb-token-output"><!-- generated by JS --></pre>
                     </div>
                 </div>
+
                 <div class="awb-form__actions">
                     <?php submit_button('Save Tokens', 'primary', 'submit', false, ['class' => 'awb-btn awb-btn--primary']); ?>
                 </div>
             </form>
+
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
                 enctype="multipart/form-data" class="awb-form awb-form--fonts" id="awb-fonts-form">
                 <input type="hidden" name="action" value="awb_save_font_settings">
@@ -375,11 +380,11 @@ Tab: Design Tokens
                     </div>
                 </div>
             </form>
+
             <?php /* ═══════════════════════════════════════════════════════
-Tab: Header & Footer Switcher
-═══════════════════════════════════════════════════════ */ ?>
+		Tab: Header & Footer Switcher
+		═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'header-footer') :
-            // Retrieve saved state.
             $hf_header_type  = get_option(AWB_Header_Switcher::OPTION_HEADER_TYPE,  'none');
             $hf_header_value = get_option(AWB_Header_Switcher::OPTION_HEADER_VALUE, '');
             $hf_footer_type  = get_option(AWB_Header_Switcher::OPTION_FOOTER_TYPE,  'none');
@@ -389,12 +394,10 @@ Tab: Header & Footer Switcher
             $hf_reusable_blocks = AWB_Header_Switcher::get_reusable_blocks();
         ?>
             <div class="awb-header-footer">
-                <!--
-NOTE: No wp_nonce_field() here. The nonce is injected via
-wp_localize_script() in AWB_Asset_Loader::enqueue_admin_assets()
-as awbHeaderFooter.nonce and read by admin-header-footer.js.
-A form-field nonce would never be read by the AJAX save path.
--->
+                <!-- NOTE: No wp_nonce_field() here. The nonce is injected via
+				     wp_localize_script() in AWB_Asset_Loader::enqueue_admin_assets()
+				     as awbHeaderFooter.nonce and read by admin-header-footer.js. -->
+
                 <!-- ── Header ── -->
                 <div class="awb-hf-section awb-card">
                     <h2><?php esc_html_e('Site Header', 'awb-starter'); ?></h2>
@@ -412,7 +415,6 @@ A form-field nonce would never be read by the AJAX save path.
                                 </select>
                             </td>
                         </tr>
-                        <!-- Pattern picker row -->
                         <tr id="awb-header-row-pattern" <?php echo 'pattern' !== $hf_header_type ? 'hidden' : ''; ?>>
                             <th scope="row">
                                 <label for="awb_header_pattern_value"><?php esc_html_e('Pattern', 'awb-starter'); ?></label>
@@ -433,7 +435,6 @@ A form-field nonce would never be read by the AJAX save path.
                                 <?php endif; ?>
                             </td>
                         </tr>
-                        <!-- Reusable block picker row -->
                         <tr id="awb-header-row-block" <?php echo 'block' !== $hf_header_type ? 'hidden' : ''; ?>>
                             <th scope="row">
                                 <label for="awb_header_block_value"><?php esc_html_e('Reusable Block', 'awb-starter'); ?></label>
@@ -466,7 +467,8 @@ A form-field nonce would never be read by the AJAX save path.
                             </td>
                         </tr>
                     </table>
-                </div><!-- /.awb-card (header) -->
+                </div>
+
                 <!-- ── Footer ── -->
                 <div class="awb-hf-section awb-card">
                     <h2><?php esc_html_e('Site Footer', 'awb-starter'); ?></h2>
@@ -484,7 +486,6 @@ A form-field nonce would never be read by the AJAX save path.
                                 </select>
                             </td>
                         </tr>
-                        <!-- Pattern picker row -->
                         <tr id="awb-footer-row-pattern" <?php echo 'pattern' !== $hf_footer_type ? 'hidden' : ''; ?>>
                             <th scope="row">
                                 <label for="awb_footer_pattern_value"><?php esc_html_e('Pattern', 'awb-starter'); ?></label>
@@ -505,7 +506,6 @@ A form-field nonce would never be read by the AJAX save path.
                                 <?php endif; ?>
                             </td>
                         </tr>
-                        <!-- Reusable block picker row -->
                         <tr id="awb-footer-row-block" <?php echo 'block' !== $hf_footer_type ? 'hidden' : ''; ?>>
                             <th scope="row">
                                 <label for="awb_footer_block_value"><?php esc_html_e('Reusable Block', 'awb-starter'); ?></label>
@@ -537,7 +537,8 @@ A form-field nonce would never be read by the AJAX save path.
                             </td>
                         </tr>
                     </table>
-                </div><!-- /.awb-card (footer) -->
+                </div>
+
                 <!-- ── Save ── -->
                 <p class="submit">
                     <button type="button" id="awb-save-header-footer" class="button button-primary awb-btn awb-btn--primary">
@@ -545,10 +546,11 @@ A form-field nonce would never be read by the AJAX save path.
                     </button>
                     <span id="awb-header-footer-status" class="awb-save-status" aria-live="polite"></span>
                 </p>
-            </div><!-- /.awb-header-footer -->
+            </div>
+
             <?php /* ═══════════════════════════════════════════════════════
-Tab: Site Scaffold
-═══════════════════════════════════════════════════════ */ ?>
+		Tab: Site Scaffold
+		═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'scaffold') : ?>
             <div class="awb-scaffold">
                 <div class="awb-scaffold__intro">
@@ -582,6 +584,7 @@ Tab: Site Scaffold
                         </div>
                     <?php endforeach; ?>
                 </div>
+
                 <div class="awb-scaffold__options">
                     <h3>Scaffold options</h3>
                     <form method="post" action="options.php" class="awb-form awb-form--inline">
@@ -624,14 +627,16 @@ Tab: Site Scaffold
                         <?php submit_button('Save options', 'secondary', 'submit', false, ['class' => 'awb-btn awb-btn--outline']); ?>
                     </form>
                 </div>
+
                 <div class="awb-scaffold__log" id="awb-scaffold-log" hidden>
                     <h3>Log</h3>
                     <ul id="awb-scaffold-log-list"></ul>
                 </div>
             </div>
+
             <?php /* ═══════════════════════════════════════════════════════
-Tab: AI Generator
-═══════════════════════════════════════════════════════ */ ?>
+		Tab: AI Generator
+		═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'ai') : ?>
             <?php
             $active_provider = get_option('awb_ai_provider', 'anthropic');
@@ -670,13 +675,13 @@ Tab: AI Generator
                                     <input type="text" id="awb-ai-business-desc" placeholder="Residential construction and renovations in Paramaribo"
                                         value="<?php echo esc_attr(get_option('awb_ai_business_desc', '')); ?>" />
                                 </div>
-                                <!-- FIXED: Added correct nonce for context saving -->
                                 <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm" id="awb-ai-save-context"
                                     data-nonce="<?php echo esc_attr(wp_create_nonce('awb_save_ai_context_nonce')); ?>">
                                     Save context
                                 </button>
                             </div>
                         </div>
+
                         <div class="awb-form__section">
                             <div class="awb-form__section-header">
                                 <h3>Generate content</h3>
@@ -721,7 +726,6 @@ Tab: AI Generator
                                 </div>
                             </div>
                             <div class="awb-ai__actions">
-                                <!-- FIXED: Changed nonce to awb_generate_nonce to match AJAX handler -->
                                 <button type="button" class="awb-btn awb-btn--primary" id="awb-ai-generate"
                                     data-nonce="<?php echo esc_attr(wp_create_nonce('awb_generate_nonce')); ?>"
                                     <?php echo ! $has_api_key ? 'disabled' : ''; ?>>
@@ -731,6 +735,7 @@ Tab: AI Generator
                             </div>
                         </div>
                     </div>
+
                     <div class="awb-ai__output">
                         <div class="awb-editor-wrap">
                             <div class="awb-editor-toolbar">
@@ -753,9 +758,10 @@ Tab: AI Generator
                     </div>
                 </div>
             </div>
+
             <?php /* ═══════════════════════════════════════════════════════
-Tab: Pattern Library
-═══════════════════════════════════════════════════════ */ ?>
+		Tab: Pattern Library
+		═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'patterns') : ?>
             <?php
             $all_patterns = [];
@@ -790,6 +796,7 @@ Tab: Pattern Library
                         </div>
                     </div>
                 </div>
+
                 <?php if (empty($all_patterns)) : ?>
                     <div class="awb-empty-state"><span class="awb-empty-state__icon">▦</span>
                         <p>No patterns found in <code>patterns/</code>. Drop a <code>.php</code> file there to get started.</p>
@@ -834,18 +841,14 @@ Tab: Pattern Library
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
-            </div><!-- /.awb-patterns -->
+            </div>
+
             <!-- ── Import a Pattern ──────────────────────────────────────── -->
             <div class="awb-card awb-import-pattern">
                 <h3><?php esc_html_e('Import a Pattern', 'awb-starter'); ?></h3>
                 <p class="description">
                     <?php esc_html_e('Upload a .zip file exported from AWB Starter. Patterns are installed into the patterns/ directory and available immediately after the next page load.', 'awb-starter'); ?>
                 </p>
-                <!--
-No <form> tag — FormData is built in JS (admin-pattern-io.js)
-and POSTed via fetch(), consistent with other AJAX actions in
-this plugin. Nonce is supplied via awbPatternIO.importNonce.
--->
                 <div class="awb-import-pattern__form">
                     <input
                         type="file"
@@ -860,9 +863,7 @@ this plugin. Nonce is supplied via awbPatternIO.importNonce.
                         <?php esc_html_e('Import', 'awb-starter'); ?>
                     </button>
                 </div>
-                <!-- Status bar: success or error message, shown after fetch() resolves -->
                 <div id="awb-import-status" class="awb-import-status" hidden></div>
-                <!-- Collision dialog: shown when imported pattern files already exist -->
                 <div id="awb-import-collision" class="awb-import-collision" hidden>
                     <p class="awb-import-collision__msg"></p>
                     <ul class="awb-import-collision__files"></ul>
@@ -875,10 +876,11 @@ this plugin. Nonce is supplied via awbPatternIO.importNonce.
                         </button>
                     </div>
                 </div>
-            </div><!-- /.awb-import-pattern -->
+            </div>
+
             <?php /* ═══════════════════════════════════════════════════════
-Tab: Store
-═══════════════════════════════════════════════════════ */ ?>
+		Tab: Store
+		═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'store') : ?>
             <div class="awb-store">
                 <div class="awb-store__intro">
@@ -886,12 +888,10 @@ Tab: Store
                     <p><?php esc_html_e('Install pre‑made patterns from our library with one click.', 'awb-starter'); ?></p>
                 </div>
                 <div id="awb-store-grid" class="awb-store-grid">
-                    <!-- Populated via JavaScript -->
                     <div class="awb-store-loading"><?php esc_html_e('Loading patterns…', 'awb-starter'); ?></div>
                 </div>
                 <div id="awb-store-status" class="awb-store-status" hidden></div>
             </div>
-            <!-- Inline template for store card -->
             <template id="awb-store-card-template">
                 <div class="awb-store-card">
                     <div class="awb-store-card__image">
@@ -911,9 +911,10 @@ Tab: Store
                     </div>
                 </div>
             </template>
+
             <?php /* ═══════════════════════════════════════════════════════
-Tab: About
-═══════════════════════════════════════════════════════ */ ?>
+		Tab: About
+		═══════════════════════════════════════════════════════ */ ?>
         <?php elseif ($active_tab === 'info') : ?>
             <div class="awb-about">
                 <div class="awb-about__hero">
@@ -976,7 +977,6 @@ Tab: About
                         <?php endforeach; ?>
                     </div>
                 </div>
-            </div>
-        <?php endif; ?>
-    </div><!-- .awb-settings-body -->
-</div><!-- .awb-settings-wrap -->
+            <?php endif; ?>
+            </div><!-- .awb-settings-body -->
+    </div><!-- .awb-settings-wrap -->
