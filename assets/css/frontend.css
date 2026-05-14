@@ -24,11 +24,20 @@ html {
 }
 
 body {
-  font-family: var(--awb-font-body);
+  font-family: var(--awb-font-body) !important;
   background: var(--bg);
   color: var(--text-dark);
   line-height: 1.6;
   overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--awb-font-heading) !important;
 }
 
 .site-header {
