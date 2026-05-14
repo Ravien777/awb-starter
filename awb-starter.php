@@ -9,7 +9,7 @@
  * Text Domain:     awb-starter
  * Requires PHP:    8.0
  *
- * @package AWBStarter
+ * @package AWBStarter 
  */
 
 if (! defined('ABSPATH')) {
