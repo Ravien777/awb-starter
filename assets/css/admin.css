@@ -1085,6 +1085,10 @@ textarea.awb-editor {
   border-color: #1d2327;
 }
 
+.is-hidden {
+  display: none !important;
+}
+
 .awb-patterns__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

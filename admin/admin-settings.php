@@ -785,7 +785,7 @@ $tabs = [
             ?>
             <div class="awb-patterns">
                 <div class="awb-patterns__toolbar">
-                    <h2>Pattern Library <span class="awb-badge"><?php echo count($all_patterns); ?> patterns</span></h2>
+                    <h2>Pattern Library <span class="awb-badge" id="awb-pattern-count"><?php echo count($all_patterns); ?> patterns</span></h2>
                     <div class="awb-patterns__filter">
                         <input type="search" id="awb-pattern-search" placeholder="Search patterns…" class="awb-search-input">
                         <div class="awb-patterns__filter-groups">
@@ -804,7 +804,7 @@ $tabs = [
                 <?php else : ?>
                     <div class="awb-patterns__grid" id="awb-patterns-grid">
                         <?php foreach ($all_patterns as $pattern) : ?>
-                            <div class="awb-pattern-card" data-folder="<?php echo esc_attr($pattern['folder']); ?>" data-title="<?php echo esc_attr(strtolower($pattern['title'])); ?>">
+                            <div class="awb-pattern-card" data-folder="<?php echo esc_attr($pattern['folder']); ?>" data-title="<?php echo esc_attr(strtolower($pattern['title'])); ?>" data-categories="<?php echo esc_attr($pattern['folder']); ?>" data-keywords="<?php echo esc_attr(strtolower($pattern['folder'] . ' ' . $pattern['title'] . ' ' . implode(' ', $pattern['categories']))); ?>">
                                 <div class="awb-pattern-card__header">
                                     <span class="awb-pattern-card__folder"><?php echo esc_html($pattern['folder']); ?></span>
                                     <div class="awb-pattern-card__badges">
@@ -841,6 +841,7 @@ $tabs = [
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+                <p class="awb-no-results" id="awb-no-results" hidden>No patterns match your search.</p>
             </div>
 
             <!-- ── Import a Pattern ──────────────────────────────────────── -->

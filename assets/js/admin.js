@@ -195,7 +195,7 @@
   /* ── Library: search ─────────────────────────────────────────────────── */
 
   function initLibrarySearch() {
-    const search = document.getElementById("awb-search");
+    const search = document.getElementById("awb-pattern-search");
     if (!search) return;
 
     let debounceTimer;
@@ -226,7 +226,7 @@
   }
 
   function applyFilters() {
-    const query = (document.getElementById("awb-search")?.value || "")
+    const query = (document.getElementById("awb-pattern-search")?.value || "")
       .toLowerCase()
       .trim();
     const cards = document.querySelectorAll(".awb-pattern-card");
