@@ -847,14 +847,16 @@ $tabs = [
             <div class="awb-card awb-import-pattern">
                 <h3><?php esc_html_e('Import a Pattern', 'awb-starter'); ?></h3>
                 <p class="description">
-                    <?php esc_html_e('Upload a .zip file exported from AWB Starter. Patterns are installed into the patterns/ directory and available immediately after the next page load.', 'awb-starter'); ?>
+                    <?php esc_html_e('Upload one or more .zip files exported from AWB Starter. Patterns are installed into the patterns/ directory and available immediately after the next page load.', 'awb-starter'); ?>
                 </p>
                 <div class="awb-import-pattern__form">
                     <input
                         type="file"
                         id="awb-import-zip"
                         accept=".zip"
-                        aria-label="<?php esc_attr_e('Select a pattern ZIP file', 'awb-starter'); ?>">
+                        multiple
+                        aria-label="<?php esc_attr_e('Select pattern ZIP files', 'awb-starter'); ?>">
+                    <span id="awb-import-file-count" class="awb-import-file-count"></span>
                     <button
                         type="button"
                         id="awb-import-btn"

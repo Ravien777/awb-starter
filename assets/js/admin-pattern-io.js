@@ -56,7 +56,7 @@
   }
 
   /* =========================================================================
-   IMPORT
+   IMPORT  (multi-file batch)
    ========================================================================= */
   function initImport() {
     var fileInput = document.getElementById("awb-import-zip");
@@ -65,106 +65,143 @@
     var collisionEl = document.getElementById("awb-import-collision");
     var overwriteBtn = document.getElementById("awb-import-overwrite");
     var cancelBtn = document.getElementById("awb-import-cancel");
+    var fileCountEl = document.getElementById("awb-import-file-count");
     if (!fileInput || !importBtn) return;
     fileInput.addEventListener("change", function () {
       importBtn.disabled = !fileInput.files.length;
       hideStatus(statusEl);
       hideCollision(collisionEl);
+      if (fileCountEl) {
+        var n = fileInput.files.length;
+        fileCountEl.textContent = n ? n + " file" + (n !== 1 ? "s" : "") + " selected" : "";
+      }
     });
     importBtn.addEventListener("click", function () {
       if (!fileInput.files.length) {
-        showStatus(
-          statusEl,
-          "error",
-          i18n("noFile", "Please select a ZIP file first."),
-        );
+        showStatus(statusEl, "error", i18n("noFile", "Please select ZIP file(s) first."));
         return;
       }
-      doImport(fileInput, importBtn, statusEl, collisionEl, false);
+      startBatchImport(fileInput, importBtn, statusEl, collisionEl);
     });
     if (overwriteBtn)
       overwriteBtn.addEventListener("click", function () {
-        doImport(fileInput, importBtn, statusEl, collisionEl, true);
+        resumeBatchImport(true);
       });
     if (cancelBtn)
       cancelBtn.addEventListener("click", function () {
-        hideCollision(collisionEl);
-        hideStatus(statusEl);
-        importBtn.disabled = !fileInput.files.length;
-        fileInput.disabled = false;
+        resumeBatchImport(false);
       });
   }
-  function doImport(fileInput, importBtn, statusEl, collisionEl, force) {
-    var file = fileInput.files[0];
-    if (!file) return;
-    hideStatus(statusEl);
-    hideCollision(collisionEl);
+
+  /* ── Batch import state ─────────────────────────────────────────────────── */
+  var _importQueue = [];
+  var _importResults = null;
+  var _importCurrentFile = null;
+  var _importRefs = {};
+
+  function startBatchImport(fileInput, importBtn, statusEl, collisionEl) {
+    _importQueue = Array.from(fileInput.files);
+    _importResults = { success: 0, failed: [], total: _importQueue.length };
+    _importCurrentFile = null;
+    _importRefs = { fileInput: fileInput, importBtn: importBtn, statusEl: statusEl, collisionEl: collisionEl };
     importBtn.disabled = true;
     importBtn.textContent = i18n("importing", "Importing…");
     fileInput.disabled = true;
+    hideStatus(statusEl);
+    hideCollision(collisionEl);
+    processNextFile();
+  }
+
+  function processNextFile() {
+    if (!_importQueue.length) {
+      showBatchSummary();
+      return;
+    }
+    var file = _importQueue.shift();
+    _importCurrentFile = file;
+    var done = _importResults.total - _importQueue.length;
+    var msg = i18n("importProgress", "Importing {current} of {total} — {name}")
+      .replace("{current}", done)
+      .replace("{total}", _importResults.total)
+      .replace("{name}", file.name);
+    showStatus(_importRefs.statusEl, "info", msg);
+    sendImportRequest(file, false);
+  }
+
+  function sendImportRequest(file, force) {
     var fd = new FormData();
     fd.append("action", "awb_import_pattern");
     fd.append("nonce", cfg().importNonce || "");
     fd.append("awb_pattern_zip", file);
     fd.append("force", force ? "1" : "0");
-    var ajaxUrl =
-      typeof ajaxurl !== "undefined" ? ajaxurl : "/wp-admin/admin-ajax.php";
+    var ajaxUrl = typeof ajaxurl !== "undefined" ? ajaxurl : "/wp-admin/admin-ajax.php";
     fetch(ajaxUrl, { method: "POST", body: fd })
-      .then(function (response) {
-        if (!response.ok) throw new Error("HTTP " + response.status);
-        return response.json();
-      })
-      .then(function (data) {
-        handleImportResponse(data, fileInput, importBtn, statusEl, collisionEl);
-      })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (data) { handleImportResponse(data, file); })
       .catch(function () {
-        restoreImportIdle(fileInput, importBtn);
-        showStatus(statusEl, "error", i18n("networkError", "Network error."));
+        _importResults.failed.push(file.name + " (" + i18n("networkError", "Network error.") + ")");
+        processNextFile();
       });
   }
-  function handleImportResponse(
-    data,
-    fileInput,
-    importBtn,
-    statusEl,
-    collisionEl,
-  ) {
+
+  function handleImportResponse(data, file) {
     if (data.success) {
-      showStatus(
-        statusEl,
-        "success",
-        (data.data?.message ||
-          i18n("importSuccess", "Pattern imported successfully.")) +
-          " " +
-          i18n("reloadNotice", "Reload to see it."),
-      );
-      resetImportForm(fileInput, importBtn);
+      _importResults.success++;
+      processNextFile();
       return;
     }
     var payload = data.data || {};
     if (payload.code === "collision") {
-      restoreImportIdle(fileInput, importBtn);
-      showCollision(collisionEl, payload);
+      _importCurrentFile = file;
+      showCollision(_importRefs.collisionEl, payload);
       return;
     }
-    restoreImportIdle(fileInput, importBtn);
-    showStatus(
-      statusEl,
-      "error",
-      payload.message || i18n("unknownError", "An unknown error occurred."),
-    );
+    _importResults.failed.push(file.name + " (" + (payload.message || i18n("unknownError", "An unknown error occurred.")) + ")");
+    processNextFile();
   }
-  function restoreImportIdle(fileInput, importBtn) {
-    fileInput.disabled = false;
-    importBtn.disabled = !fileInput.files.length;
-    importBtn.textContent = i18n("import", "Import");
+
+  function resumeBatchImport(overwrite) {
+    hideCollision(_importRefs.collisionEl);
+    if (!_importCurrentFile) {
+      processNextFile();
+      return;
+    }
+    if (overwrite) {
+      _importRefs.importBtn.textContent = i18n("importing", "Importing…");
+      _importRefs.fileInput.disabled = true;
+      sendImportRequest(_importCurrentFile, true);
+    } else {
+      _importResults.failed.push(_importCurrentFile.name + " (" + i18n("skipped", "Skipped") + ")");
+      _importCurrentFile = null;
+      processNextFile();
+    }
   }
-  function resetImportForm(fileInput, importBtn) {
-    fileInput.value = "";
-    fileInput.disabled = false;
-    importBtn.disabled = true;
-    importBtn.textContent = i18n("import", "Import");
+
+  function showBatchSummary() {
+    var r = _importResults;
+    var fi = _importRefs.fileInput;
+    var ib = _importRefs.importBtn;
+    fi.value = "";
+    fi.disabled = false;
+    ib.disabled = !fi.files.length;
+    ib.textContent = i18n("import", "Import");
+    if (r.success === r.total) {
+      var okMsg = i18n("importSummary", "{succeeded} of {total} patterns imported successfully.")
+        .replace("{succeeded}", r.success).replace("{total}", r.total);
+      showStatus(_importRefs.statusEl, "success", okMsg);
+    } else {
+      var failMsg = i18n("importFailed", "{failed} of {total} patterns failed.")
+        .replace("{failed}", r.failed.length).replace("{total}", r.total);
+      showStatus(_importRefs.statusEl, "error", failMsg);
+    }
+    _importQueue = [];
+    _importResults = null;
+    _importCurrentFile = null;
+    _importRefs = {};
+    var ce = document.getElementById("awb-import-file-count");
+    if (ce) ce.textContent = "";
   }
+
   function showStatus(el, type, message) {
     if (!el) return;
     el.textContent = message;
@@ -182,10 +219,7 @@
     var msgEl = el.querySelector(".awb-import-collision__msg");
     var listEl = el.querySelector(".awb-import-collision__files");
     if (msgEl)
-      msgEl.textContent = i18n(
-        "overwritePrompt",
-        "The following files already exist and will be overwritten:",
-      );
+      msgEl.textContent = i18n("overwritePrompt", "The following files already exist and will be overwritten:");
     if (listEl) {
       listEl.innerHTML = "";
       (Array.isArray(payload.files) ? payload.files : []).forEach(function (f) {

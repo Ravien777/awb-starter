@@ -80,6 +80,12 @@
   cursor: not-allowed;
 }
 
+.awb-import-file-count {
+  font-size: 0.8125rem;
+  color: var(--awb-c-ink-secondary, #6b7280);
+  white-space: nowrap;
+}
+
 /* ---------------------------------------------------------------------------
    Import status bar
    --------------------------------------------------------------------------- */
@@ -103,6 +109,12 @@
   background: #fef2f2;
   border: 1px solid #fca5a5;
   color: #991b1b;
+}
+
+.awb-import-status--info {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #1e40af;
 }
 
 /* ---------------------------------------------------------------------------
