@@ -32,10 +32,34 @@ class AWB_Settings
 		);
 		add_submenu_page(
 			'awb-starter',
-			__('Dashboard', 'awb-starter'),
-			__('Dashboard', 'awb-starter'),
+			__('Home', 'awb-starter'),
+			__('Home', 'awb-starter'),
 			'manage_options',
 			'awb-starter',
+			[$this, 'render_settings_page']
+		);
+		add_submenu_page(
+			'awb-starter',
+			__('Design Tokens', 'awb-starter'),
+			__('Design Tokens', 'awb-starter'),
+			'manage_options',
+			'awb-starter-tab-tokens',
+			[$this, 'render_settings_page']
+		);
+		add_submenu_page(
+			'awb-starter',
+			__('Header & Footer', 'awb-starter'),
+			__('Header & Footer', 'awb-starter'),
+			'manage_options',
+			'awb-starter-tab-header-footer',
+			[$this, 'render_settings_page']
+		);
+		add_submenu_page(
+			'awb-starter',
+			__('AI Generator', 'awb-starter'),
+			__('AI Generator', 'awb-starter'),
+			'manage_options',
+			'awb-starter-tab-ai',
 			[$this, 'render_settings_page']
 		);
 		add_submenu_page(
@@ -43,8 +67,8 @@ class AWB_Settings
 			__('Pattern Library', 'awb-starter'),
 			__('Pattern Library', 'awb-starter'),
 			'manage_options',
-			'awb-starter-library',
-			[$this, 'render_library_page']
+			'awb-starter-tab-patterns',
+			[$this, 'render_settings_page']
 		);
 	}
 
@@ -53,25 +77,16 @@ class AWB_Settings
 		if (! current_user_can('manage_options')) {
 			return;
 		}
+		$page = $_GET['page'] ?? 'awb-starter';
+		if (strpos($page, 'awb-starter-tab-') === 0) {
+			$_GET['tab'] = substr($page, strlen('awb-starter-tab-'));
+		}
 		$tpl = AWB_PLUGIN_PATH . 'admin/admin-settings.php';
 		if (file_exists($tpl)) {
 			include $tpl;
 			return;
 		}
 		echo '<div class="wrap"><h1>' . esc_html__('AWB – Dashboard', 'awb-starter') . '</h1></div>';
-	}
-
-	public function render_library_page(): void
-	{
-		if (! current_user_can('manage_options')) {
-			return;
-		}
-		$tpl = AWB_PLUGIN_PATH . 'admin/admin-library.php';
-		if (file_exists($tpl)) {
-			include $tpl;
-			return;
-		}
-		echo '<div class="wrap"><h1>' . esc_html__('Pattern Library', 'awb-starter') . '</h1></div>';
 	}
 
 	public function register_settings(): void
