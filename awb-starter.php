@@ -86,3 +86,18 @@ final class AWB_Starter
 }
 
 AWB_Starter::instance();
+
+// Create user-patterns directory structure on activation.
+register_activation_hook(__FILE__, function (): void {
+    $dirs = [
+        AWB_USER_PATTERNS_PATH,
+        AWB_USER_PATTERNS_PATH . 'patterns/',
+        AWB_USER_PATTERNS_PATH . 'css/',
+        AWB_USER_PATTERNS_PATH . 'js/',
+    ];
+    foreach ($dirs as $dir) {
+        if (! is_dir($dir)) {
+            wp_mkdir_p($dir);
+        }
+    }
+});

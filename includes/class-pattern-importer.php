@@ -355,17 +355,50 @@ class AWB_Pattern_Importer
     // -------------------------------------------------------------------------
     // File writing
     // -------------------------------------------------------------------------
+    private static function init_filesystem(): bool
+    {
+        global $wp_filesystem;
+        if (! empty($wp_filesystem) && is_object($wp_filesystem)) {
+            return true;
+        }
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        return WP_Filesystem();
+    }
+
+    private static function write_file(string $path, string $content): bool
+    {
+        if (self::init_filesystem()) {
+            global $wp_filesystem;
+            return $wp_filesystem->put_contents($path, $content, FS_CHMOD_FILE);
+        }
+        return file_put_contents($path, $content) !== false;
+    }
+
+    private static function ensure_directory(string $dir): bool
+    {
+        if (is_dir($dir)) {
+            return true;
+        }
+        // wp_mkdir_p handles recursive creation reliably; prefer it over
+        // WP_Filesystem::mkdir which does NOT support a recursive flag
+        // (the 3rd param is $chown, not $recursive).
+        if (wp_mkdir_p($dir)) {
+            return true;
+        }
+        // Fallback: single-level mkdir via WP_Filesystem when available.
+        if (self::init_filesystem()) {
+            global $wp_filesystem;
+            return $wp_filesystem->mkdir($dir, FS_CHMOD_DIR);
+        }
+        return false;
+    }
+
     private static function write_files(
         ZipArchive $zip,
         string $prefix,
         array $meta,
         array $paths
     ): void {
-        global $wp_filesystem;
-        if (empty($wp_filesystem)) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-            WP_Filesystem();
-        }
         // ── pattern.php ──────────────────────────────────────────────────────
         $php_content = $zip->getFromName($prefix . 'pattern.php');
         if (false === $php_content) {
@@ -374,15 +407,17 @@ class AWB_Pattern_Importer
                 'message' => __('Could not read pattern.php from ZIP.', 'awb-starter'),
             ]);
         }
-        if (! $wp_filesystem->is_dir($paths['pattern_dir'])) {
-            if (! $wp_filesystem->mkdir($paths['pattern_dir'], FS_CHMOD_DIR, true)) {
-                wp_send_json_error([
-                    'code'    => 'error',
-                    'message' => __('Could not create pattern directory. Check directory permissions.', 'awb-starter'),
-                ]);
-            }
+        if (! self::ensure_directory($paths['pattern_dir'])) {
+            wp_send_json_error([
+                'code'    => 'error',
+                'message' => sprintf(
+                    /* translators: %s: the directory path that could not be created */
+                    __('Could not create pattern directory "%s". Check directory permissions.', 'awb-starter'),
+                    esc_html($paths['pattern_dir'])
+                ),
+            ]);
         }
-        if (! $wp_filesystem->put_contents($paths['pattern_php'], $php_content, FS_CHMOD_FILE)) {
+        if (! self::write_file($paths['pattern_php'], $php_content)) {
             wp_send_json_error([
                 'code'    => 'error',
                 'message' => __('Could not write pattern.php. Check directory permissions.', 'awb-starter'),
@@ -393,8 +428,8 @@ class AWB_Pattern_Importer
             // Use the exact path from metadata — do NOT assume 'pattern.css'
             $css_content = $zip->getFromName($prefix . $meta['css_file']);
             if (false !== $css_content) {
-                self::ensure_directory(dirname($paths['css']), $wp_filesystem);
-                $wp_filesystem->put_contents($paths['css'], $css_content, FS_CHMOD_FILE);
+                self::ensure_directory(dirname($paths['css']));
+                self::write_file($paths['css'], $css_content);
             }
         }
         // ── JS (optional, dynamic filename from metadata) ────────────────────
@@ -402,16 +437,9 @@ class AWB_Pattern_Importer
             // Use the exact path from metadata — do NOT assume 'pattern.js'
             $js_content = $zip->getFromName($prefix . $meta['js_file']);
             if (false !== $js_content) {
-                self::ensure_directory(dirname($paths['js']), $wp_filesystem);
-                $wp_filesystem->put_contents($paths['js'], $js_content, FS_CHMOD_FILE);
+                self::ensure_directory(dirname($paths['js']));
+                self::write_file($paths['js'], $js_content);
             }
-        }
-    }
-
-    private static function ensure_directory(string $dir, WP_Filesystem_Base $fs): void
-    {
-        if (! $fs->is_dir($dir)) {
-            $fs->mkdir($dir, FS_CHMOD_DIR, true);
         }
     }
 }

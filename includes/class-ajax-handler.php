@@ -278,10 +278,14 @@ class AWB_Ajax_Handler
         if (! is_array($files_data)) {
             wp_send_json_error(['message' => __('Invalid files data.', 'awb-starter')], 400);
         }
+        // Initialise WP_Filesystem; fall back to direct PHP if unavailable.
         global $wp_filesystem;
-        if (empty($wp_filesystem)) {
+        $fs_ok = false;
+        if (! empty($wp_filesystem) && is_object($wp_filesystem)) {
+            $fs_ok = true;
+        } else {
             require_once ABSPATH . 'wp-admin/includes/file.php';
-            WP_Filesystem();
+            $fs_ok = WP_Filesystem();
         }
         $php_path = AWB_Pattern_Loader::$pattern_files[$pattern_name] ?? '';
         // Read header to resolve asset paths safely without URL string replacement.
@@ -290,9 +294,11 @@ class AWB_Ajax_Handler
         $saved = 0;
 
         // Helper to write and invalidate OPcache.
-        $write_file = function ($path, $content) use ($wp_filesystem) {
+        $write_file = function ($path, $content) use ($wp_filesystem, $fs_ok) {
             if (empty($path) || empty($content)) return false;
-            $success = $wp_filesystem->put_contents($path, $content, FS_CHMOD_FILE);
+            $success = $fs_ok
+                ? $wp_filesystem->put_contents($path, $content, FS_CHMOD_FILE)
+                : (file_put_contents($path, $content) !== false);
             if ($success && function_exists('opcache_invalidate')) {
                 opcache_invalidate($path, true);
             }
@@ -344,26 +350,35 @@ class AWB_Ajax_Handler
         if (! $php_path || ! $this->is_path_within($php_path, AWB_USER_PATTERNS_PATH)) {
             wp_send_json_error(['message' => __('Pattern file not found or path invalid.', 'awb-starter')], 404);
         }
+        // Initialise WP_Filesystem; fall back to direct PHP if unavailable.
         global $wp_filesystem;
-        if (empty($wp_filesystem)) {
+        $fs_ok = false;
+        if (! empty($wp_filesystem) && is_object($wp_filesystem)) {
+            $fs_ok = true;
+        } else {
             require_once ABSPATH . 'wp-admin/includes/file.php';
-            WP_Filesystem();
+            $fs_ok = WP_Filesystem();
         }
         $deleted = 0;
-        if ($wp_filesystem->exists($php_path) && $wp_filesystem->delete($php_path)) {
+        $delete_file = function ($path) use ($wp_filesystem, $fs_ok) {
+            return $fs_ok
+                ? ($wp_filesystem->exists($path) && $wp_filesystem->delete($path))
+                : (file_exists($path) && unlink($path));
+        };
+        if ($delete_file($php_path)) {
             $deleted++;
         }
         $meta = get_file_data($php_path, ['css' => 'CSS', 'js' => 'JS']);
         $base_path = trailingslashit(AWB_USER_PATTERNS_PATH);
         if (! empty($meta['css'])) {
             $css_path = $base_path . ltrim($meta['css'], '/');
-            if ($this->is_path_within($css_path, AWB_USER_PATTERNS_PATH) && $wp_filesystem->exists($css_path) && $wp_filesystem->delete($css_path)) {
+            if ($this->is_path_within($css_path, AWB_USER_PATTERNS_PATH) && $delete_file($css_path)) {
                 $deleted++;
             }
         }
         if (! empty($meta['js'])) {
             $js_path = $base_path . ltrim($meta['js'], '/');
-            if ($this->is_path_within($js_path, AWB_USER_PATTERNS_PATH) && $wp_filesystem->exists($js_path) && $wp_filesystem->delete($js_path)) {
+            if ($this->is_path_within($js_path, AWB_USER_PATTERNS_PATH) && $delete_file($js_path)) {
                 $deleted++;
             }
         }

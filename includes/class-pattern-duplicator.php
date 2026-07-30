@@ -195,14 +195,23 @@ class AWB_Pattern_Duplicator
             );
         }
 
-        // Initialise WP_Filesystem.
+        // Initialise WP_Filesystem; fall back to direct PHP if unavailable.
         global $wp_filesystem;
-        if (empty($wp_filesystem)) {
+        $fs_ok = false;
+        if (! empty($wp_filesystem) && is_object($wp_filesystem)) {
+            $fs_ok = true;
+        } else {
             require_once ABSPATH . 'wp-admin/includes/file.php';
-            WP_Filesystem();
+            $fs_ok = WP_Filesystem();
         }
 
-        if (! $wp_filesystem->put_contents($filepath, $content, FS_CHMOD_FILE)) {
+        if ($fs_ok) {
+            $ok = $wp_filesystem->put_contents($filepath, $content, FS_CHMOD_FILE);
+        } else {
+            $ok = file_put_contents($filepath, $content) !== false;
+        }
+
+        if (! $ok) {
             return new WP_Error(
                 'write_failed',
                 __('Could not write clone file. Check directory permissions.', 'awb-starter')
