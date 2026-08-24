@@ -2219,7 +2219,7 @@ input.awb-editor.awb-api-input {
   top: 10px;
   left: 10px;
   z-index: 2;
-  display: flex;
+  display: contents;
   align-items: center;
   margin: 0;
   cursor: pointer;

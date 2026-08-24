@@ -561,7 +561,7 @@
     }
 
     body.innerHTML =
-      '<iframe class="awb-modal-frame" sandbox="" title="Pattern visual preview"></iframe>';
+      '<iframe class="awb-modal-frame" sandbox="allow-scripts" title="Pattern visual preview"></iframe>';
     const frame = body.querySelector(".awb-modal-frame");
     if (frame) frame.srcdoc = buildPreviewDoc();
   }
