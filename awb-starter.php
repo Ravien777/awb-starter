@@ -8,8 +8,6 @@
 * Author:            WLM+
 * Text Domain:       awb-starter
 * Requires PHP:      8.0
-* GitHub Plugin URI: https://github.com/Ravien777/awb-starter
-* Primary Branch:    main
 *
 * @package AWBStarter 
 */
@@ -34,6 +32,32 @@ define('AWB_PATTERNS_PATH', AWB_PLUGIN_PATH . 'patterns/');
  */
 define('AWB_USER_PATTERNS_PATH', WP_CONTENT_DIR . '/uploads/awb-patterns/');
 define('AWB_USER_PATTERNS_URL',  WP_CONTENT_URL . '/uploads/awb-patterns/');
+
+/*
+ * Auto-updates from GitHub releases via Plugin Update Checker (PUC).
+ * Requires a published GitHub release whose asset zip extracts to awb-starter/.
+ */
+$awb_updater_loader = AWB_PLUGIN_PATH . 'lib/plugin-update-checker/plugin-update-checker.php';
+if (file_exists($awb_updater_loader) && ! class_exists(\YahnisElsts\PluginUpdateChecker\v5\PucFactory::class)) {
+    require_once $awb_updater_loader;
+
+    if (class_exists(\YahnisElsts\PluginUpdateChecker\v5\PucFactory::class)) {
+        $awb_update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+            'https://github.com/Ravien777/awb-starter',
+            __FILE__,
+            'awb-starter'
+        );
+
+        // Serve the release asset zip instead of the source-code archive.
+        $awb_update_checker->getVcsApi()->enableReleaseAssets('/\.zip($|[?&#])/i');
+
+        // For a private repository, define AWB_GITHUB_TOKEN in wp-config.php.
+        if (defined('AWB_GITHUB_TOKEN') && '' !== AWB_GITHUB_TOKEN) {
+            $awb_update_checker->setAuthentication(AWB_GITHUB_TOKEN);
+        }
+    }
+}
+unset($awb_updater_loader);
 
 // Autoload support for classes in /includes/.
 spl_autoload_register(function ($class) {

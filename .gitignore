@@ -20,3 +20,5 @@ Thumbs.db
 *.iml
 *.swp
 *.swo
+# Release build output
+dist/
