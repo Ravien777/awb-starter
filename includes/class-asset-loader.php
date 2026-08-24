@@ -48,7 +48,7 @@ class AWB_Asset_Loader
         $script_enqueued = $this->enqueue_script('awb-starter', 'assets/js/frontend.js');
 
         if ($style_enqueued) {
-            $tokens_css = $this->generate_design_tokens_css();
+            $tokens_css = self::generate_design_tokens_css();
             if ($tokens_css) wp_add_inline_style('awb-starter', $tokens_css);
             $custom_css = get_option('awb_custom_css', '');
             if ($custom_css) wp_add_inline_style('awb-starter', wp_strip_all_tags($custom_css));
@@ -185,7 +185,10 @@ class AWB_Asset_Loader
             if (isset($_GET['tab']) && 'store' === $_GET['tab']) {
                 $this->enqueue_style('awb-admin-store', 'assets/css/admin-store.css', ['awb-starter-admin']);
                 $this->enqueue_script('awb-admin-store', 'assets/js/admin-store.js', ['awb-starter-admin']);
-                wp_localize_script('awb-admin-store', 'awbStore', ['nonce' => wp_create_nonce('awb_install_remote_pattern')]);
+                wp_localize_script('awb-admin-store', 'awbStore', [
+                    'nonce'        => wp_create_nonce('awb_install_remote_pattern'),
+                    'manifestNonce' => wp_create_nonce('awb_store_manifest'),
+                ]);
             }
         }
 
@@ -213,10 +216,10 @@ class AWB_Asset_Loader
         $this->enqueue_style('awb-starter-editor', 'assets/css/editor.css');
     }
 
-    private function generate_design_tokens_css(): string
+    public static function generate_design_tokens_css(): string
     {
         $css = '';
-        $font_faces = $this->generate_font_faces_css();
+        $font_faces = self::generate_font_faces_css();
         if ($font_faces) $css .= $font_faces . "\n";
 
         $tokens = [
@@ -226,8 +229,8 @@ class AWB_Asset_Loader
             '--awb-color-text'      => get_option('awb_token_color_text', '#1a1a1a'),
             '--awb-color-bg'        => get_option('awb_token_color_bg', '#ffffff'),
             '--awb-color-border'    => 'color-mix(in srgb, ' . get_option('awb_token_color_bg', '#ffffff') . ' 80%, ' . get_option('awb_token_color_text', '#1a1a1a') . ')',
-            '--awb-font-heading'    => $this->get_font_stack('heading'),
-            '--awb-font-body'       => $this->get_font_stack('body'),
+            '--awb-font-heading'    => self::get_font_stack('heading'),
+            '--awb-font-body'       => self::get_font_stack('body'),
             '--awb-font-mono'       => get_option('awb_token_font_mono', 'monospace'),
             '--awb-space-xs'        => get_option('awb_token_space_xs', '0.25rem'),
             '--awb-space-sm'        => get_option('awb_token_space_sm', '0.5rem'),
@@ -248,7 +251,7 @@ class AWB_Asset_Loader
         return $css;
     }
 
-    private function generate_font_faces_css(): string
+    private static function generate_font_faces_css(): string
     {
         $ff = '';
         $cf = [
@@ -260,19 +263,19 @@ class AWB_Asset_Loader
 
         foreach ($cf as $t => $u) {
             if (!$u) continue;
-            $ff .= "@font-face {\nfont-family: 'AWB Custom Font';\nfont-weight: {$fw[$t]};\nfont-style: normal;\nsrc: url('{$u}') format('" . $this->get_font_format($u) . "');\n}\n";
+            $ff .= "@font-face {\nfont-family: 'AWB Custom Font';\nfont-weight: {$fw[$t]};\nfont-style: normal;\nsrc: url('{$u}') format('" . self::get_font_format($u) . "');\n}\n";
         }
 
         return $ff;
     }
 
-    private function get_font_format(string $u): string
+    private static function get_font_format(string $u): string
     {
         $f = ['woff' => 'woff', 'woff2' => 'woff2', 'ttf' => 'truetype', 'otf' => 'opentype'];
         return $f[strtolower(pathinfo($u, PATHINFO_EXTENSION))] ?? 'woff';
     }
 
-    private function get_font_stack(string $t): string
+    private static function get_font_stack(string $t): string
     {
         $hc = get_option('awb_custom_font_regular', '') || get_option('awb_custom_font_medium', '') || get_option('awb_custom_font_bold', '');
         $fb = 'heading' === $t ? get_option('awb_token_font_heading', 'Georgia, serif') : get_option('awb_token_font_body', 'system-ui, sans-serif');

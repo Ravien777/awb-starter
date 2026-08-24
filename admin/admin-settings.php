@@ -56,6 +56,8 @@ $tabs = [
             <div class="awb-notice awb-notice--error" role="alert"><span>&#9888;</span> <?php echo esc_html(urldecode($_GET['error'])); ?></div>
         <?php endif; ?>
 
+        <?php AWB_Onboarding::render(); ?>
+
         <?php /* ═══════════════════════════════════════════════════════
 		Tab: CSS & JS
 		═══════════════════════════════════════════════════════ */ ?>
@@ -742,7 +744,8 @@ $tabs = [
                                 <span class="awb-editor-lang">Output</span>
                                 <span class="awb-ai-status" id="awb-ai-status-label"></span>
                                 <button type="button" class="awb-editor-btn" id="awb-ai-copy-output" disabled>Copy</button>
-                                <button type="button" class="awb-editor-btn awb-editor-btn--primary" id="awb-ai-insert-output" disabled>Insert into editor</button>
+                                <button type="button" class="awb-editor-btn awb-editor-btn--primary" id="awb-ai-insert-output" disabled
+                                    data-nonce="<?php echo esc_attr(wp_create_nonce('awb_ai_draft')); ?>">Insert into editor</button>
                             </div>
                             <textarea id="awb-ai-output" class="awb-editor awb-editor--output" rows="24" readonly
                                 placeholder="Generated block markup will appear here..."></textarea>
@@ -863,8 +866,22 @@ $tabs = [
                         <p>No patterns found in <code>patterns/</code>. Drop a <code>.php</code> file there to get started.</p>
                     </div>
                 <?php else : ?>
+                    <div class="awb-bulk-bar" id="awb-bulk-bar" hidden>
+                        <span class="awb-bulk-bar__count" id="awb-bulk-count">0 selected</span>
+                        <div class="awb-bulk-bar__actions">
+                            <button type="button" class="awb-btn awb-btn--outline awb-btn--sm" id="awb-bulk-export"><?php esc_html_e('Export ZIPs', 'awb-starter'); ?></button>
+                            <button type="button" class="awb-btn awb-btn--outline awb-btn--sm" id="awb-bulk-duplicate"><?php esc_html_e('Clone', 'awb-starter'); ?></button>
+                            <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-bulk-delete" id="awb-bulk-delete"><?php esc_html_e('Delete', 'awb-starter'); ?></button>
+                            <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm" id="awb-bulk-clear"><?php esc_html_e('Clear selection', 'awb-starter'); ?></button>
+                        </div>
+                        <span class="awb-bulk-bar__status" id="awb-bulk-status" aria-live="polite"></span>
+                    </div>
                     <div class="awb-patterns__grid" id="awb-patterns-grid">
-                        <?php foreach ($all_patterns as $pattern) : ?>
+                        <?php foreach ($all_patterns as $pattern) :
+                            $usage = AWB_Pattern_Loader::get_usage_count($pattern['registered_name']);
+                            $exportable_name = 'awb/' . sanitize_title($pattern['slug']);
+                            $can_act = $pattern['slug'] && array_key_exists($exportable_name, AWB_Pattern_Loader::$pattern_files);
+                            ?>
                             <div class="awb-pattern-card"
                                 data-folder="<?php echo esc_attr($pattern['folder']); ?>"
                                 data-title="<?php echo esc_attr(strtolower($pattern['title'])); ?>"
@@ -873,7 +890,14 @@ $tabs = [
                                 data-keywords="<?php echo esc_attr(strtolower(implode(' ', array_filter([$pattern['folder'], $pattern['title'], implode(' ', $pattern['categories']), implode(' ', $pattern['keywords']), $pattern['description'], $pattern['slug']])))); ?>"
                                 data-source="<?php echo esc_attr($pattern['source']); ?>"
                                 data-has-css="<?php echo $pattern['has_css'] ? '1' : '0'; ?>"
-                                data-has-js="<?php echo $pattern['has_js'] ? '1' : '0'; ?>">
+                                data-has-js="<?php echo $pattern['has_js'] ? '1' : '0'; ?>"
+                                data-usage="<?php echo (int) AWB_Pattern_Loader::get_usage_count($pattern['registered_name']); ?>">
+                                <label class="awb-pattern-card__select">
+                                    <input type="checkbox" class="awb-pattern-check"
+                                        data-pattern="<?php echo esc_attr($exportable_name); ?>"
+                                        data-actable="<?php echo $can_act ? '1' : '0'; ?>"
+                                        aria-label="<?php printf(esc_attr__('Select %s', 'awb-starter'), esc_attr($pattern['title'])); ?>">
+                                </label>
                                 <div class="awb-pattern-card__header">
                                     <span class="awb-pattern-card__folder"><?php echo esc_html($pattern['folder']); ?></span>
                                     <div class="awb-pattern-card__badges">
@@ -888,14 +912,18 @@ $tabs = [
                                         <?php foreach ($pattern['categories'] as $cat) : ?><span class="awb-tag"><?php echo esc_html($cat); ?></span><?php endforeach; ?>
                                     </div>
                                 <?php endif; ?>
+                                <?php if ($usage > 0) : ?>
+                                    <span class="awb-usage-badge" title="<?php esc_attr_e('Published posts/pages containing this pattern', 'awb-starter'); ?>">
+                                        <?php printf(esc_html(_n('Used on %d page', 'Used on %d pages', $usage, 'awb-starter')), (int) $usage); ?>
+                                    </span>
+                                <?php endif; ?>
                                 <div class="awb-pattern-card__footer">
                                     <code class="awb-pattern-card__file"><?php echo esc_html($pattern['relative']); ?></code>
                                     <?php if ($pattern['slug']) : ?>
                                         <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-copy-slug" data-slug="<?php echo esc_attr($pattern['slug']); ?>" title="Copy slug"><i class="fas fa-link"></i></button>
                                     <?php endif; ?>
-                                    <?php
-                                    $exportable_name = 'awb/' . sanitize_title($pattern['slug']);
-                                    if ($pattern['slug'] && array_key_exists($exportable_name, AWB_Pattern_Loader::$pattern_files)) : ?>
+                                    <?php if ($can_act) : ?>
+                                        <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-preview-pattern" data-pattern="<?php echo esc_attr($exportable_name); ?>" data-title="<?php echo esc_attr($pattern['title']); ?>" title="Preview"><i class="fas fa-eye"></i></button>
                                         <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-export-pattern" data-pattern="<?php echo esc_attr($exportable_name); ?>" title="Export"><i class="fas fa-download"></i></button>
                                         <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-duplicate-pattern" data-pattern="<?php echo esc_attr($exportable_name); ?>" title="Clone"><i class="fas fa-clone"></i></button>
                                         <?php
@@ -911,6 +939,26 @@ $tabs = [
                     </div>
                 <?php endif; ?>
                 <p class="awb-no-results" id="awb-no-results" hidden>No patterns match your search.</p>
+            </div>
+
+            <!-- ── Pattern preview modal ─────────────────────────────────── -->
+            <div class="awb-modal" id="awb-preview-modal" role="dialog" aria-modal="true" aria-labelledby="awb-preview-modal-title" hidden>
+                <div class="awb-modal__backdrop" id="awb-modal-backdrop"></div>
+                <div class="awb-modal__panel awb-modal__panel--wide">
+                    <header class="awb-modal__header">
+                        <h2 class="awb-modal__title" id="awb-preview-modal-title"><?php esc_html_e('Pattern preview', 'awb-starter'); ?></h2>
+                        <div class="awb-modal__view-toggle">
+                            <button type="button" class="awb-preview-view-btn is-active" data-preview-view="visual" aria-pressed="true"><?php esc_html_e('Visual', 'awb-starter'); ?></button>
+                            <button type="button" class="awb-preview-view-btn" data-preview-view="markup" aria-pressed="false"><?php esc_html_e('Markup', 'awb-starter'); ?></button>
+                        </div>
+                        <button class="awb-modal__close" id="awb-modal-close" aria-label="<?php esc_attr_e('Close preview', 'awb-starter'); ?>">&#10005;</button>
+                    </header>
+                    <div class="awb-modal__body" id="awb-modal-body"><!-- Rendered via JS --></div>
+                    <footer class="awb-modal__footer">
+                        <button type="button" class="awb-btn awb-btn--outline" id="awb-modal-copy"><?php esc_html_e('Copy markup', 'awb-starter'); ?></button>
+                        <button type="button" class="awb-btn awb-btn--primary" id="awb-modal-close-btn"><?php esc_html_e('Done', 'awb-starter'); ?></button>
+                    </footer>
+                </div>
             </div>
 
             <!-- ── Import a Pattern ──────────────────────────────────────── -->
@@ -957,8 +1005,23 @@ $tabs = [
             <div class="awb-store">
                 <div class="awb-store__intro">
                     <h2><?php esc_html_e('Pattern Store', 'awb-starter'); ?></h2>
-                    <p><?php esc_html_e('Install pre‑made patterns from our library with one click.', 'awb-starter'); ?></p>
+                    <p><?php esc_html_e('Install pre‑made patterns from your own remote library with one click.', 'awb-starter'); ?></p>
                 </div>
+
+                <form method="post" action="options.php" class="awb-store-config">
+                    <?php settings_fields('awb_store_group'); ?>
+                    <label for="awb_store_manifest_url">
+                        <strong><?php esc_html_e('Manifest URL', 'awb-starter'); ?></strong>
+                        <span><?php esc_html_e('Points to a manifest.json listing installable pattern packages. Downloads are restricted to this host (plus any hosts added via the awb_store_allowed_hosts filter).', 'awb-starter'); ?></span>
+                    </label>
+                    <div class="awb-store-config__row">
+                        <input type="url" id="awb_store_manifest_url" name="<?php echo esc_attr(AWB_Store::OPTION_MANIFEST_URL); ?>"
+                            value="<?php echo esc_attr((string) get_option(AWB_Store::OPTION_MANIFEST_URL, '')); ?>"
+                            placeholder="https://example.com/awb-patterns/manifest.json" class="regular-text">
+                        <?php submit_button(__('Save Store URL', 'awb-starter'), 'primary awb-btn awb-btn--primary', 'submit', false); ?>
+                    </div>
+                </form>
+
                 <div id="awb-store-grid" class="awb-store-grid">
                     <div class="awb-store-loading"><?php esc_html_e('Loading patterns…', 'awb-starter'); ?></div>
                 </div>

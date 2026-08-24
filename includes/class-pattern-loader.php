@@ -47,6 +47,27 @@ class AWB_Pattern_Loader
         add_action('init', [$this, 'register_patterns']);
     }
 
+    /**
+     * Count published posts/pages whose content references a pattern.
+     *
+     * Matches either the registered name (awb/slug) or the short slug,
+     * mirroring how AWB_Asset_Loader detects in-use patterns.
+     *
+     * @param string $registered_name e.g. awb/hero-cta.
+     */
+    public static function get_usage_count(string $registered_name): int
+    {
+        global $wpdb;
+        $short = str_replace('awb/', '', $registered_name);
+        $like  = '%' . $wpdb->esc_like($short) . '%';
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type IN ('page','post') AND post_content LIKE %s",
+                $like
+            )
+        );
+    }
+
     public function register_patterns(): void
     {
         if (! function_exists('register_block_pattern')) {

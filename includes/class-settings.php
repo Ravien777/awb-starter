@@ -152,6 +152,9 @@ class AWB_Settings
 		foreach ($scaffold_settings as $setting) {
 			register_setting('awb_scaffold_group', $setting, ['sanitize_callback' => 'sanitize_text_field', 'default' => '']);
 		}
+
+		// ── Group 4: Pattern Store ────────────────────────────────────────
+		register_setting('awb_store_group', AWB_Store::OPTION_MANIFEST_URL, ['sanitize_callback' => 'esc_url_raw', 'default' => '']);
 	}
 
 	/**

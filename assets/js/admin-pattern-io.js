@@ -529,14 +529,22 @@
   function handleDeleteClick(btn) {
     var patternName = btn.dataset.pattern || "";
     if (!patternName) return;
-    if (
-      !confirm(
-        i18n(
-          "deleteConfirm",
-          "Are you sure you want to delete this pattern and its associated assets? This cannot be undone.",
-        ),
-      )
-    ) {
+    var card = btn.closest(".awb-pattern-card");
+    var usage = card ? parseInt(card.dataset.usage || "0", 10) || 0 : 0;
+    var message = i18n(
+      "deleteConfirm",
+      "Are you sure you want to delete this pattern and its associated assets? This cannot be undone.",
+    );
+    if (usage > 0) {
+      message =
+        "This pattern is used on " +
+        usage +
+        " published page" +
+        (usage !== 1 ? "s" : "") +
+        ".\n\n" +
+        message;
+    }
+    if (!confirm(message)) {
       return;
     }
     var originalLabel = btn.textContent;

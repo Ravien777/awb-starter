@@ -69,71 +69,6 @@ class AWB_AI_Generator
     }
 
     /**
-     * Build an enriched prompt from structured UI inputs.
-     *
-     * @param array<string, mixed> $inputs User inputs including section_type, style, color_scheme, etc.
-     * @return string The compiled prompt.
-     */
-    public static function build_prompt(array $inputs): string
-    {
-        $section_type = sanitize_text_field($inputs['section_type'] ?? 'hero');
-        $style        = sanitize_text_field($inputs['style'] ?? 'modern');
-        $color_scheme = sanitize_text_field($inputs['color_scheme'] ?? 'light');
-        $description  = sanitize_textarea_field($inputs['description'] ?? '');
-        $has_cta      = ! empty($inputs['has_cta']);
-        $columns      = intval($inputs['columns'] ?? 1);
-        $brand_colors = sanitize_text_field($inputs['brand_colors'] ?? '');
-
-        $prompt = "Create a {$style} WordPress Gutenberg section of type: {$section_type}.\n";
-        $prompt .= "Color scheme: {$color_scheme}.\n";
-
-        if ($columns > 1) {
-            $prompt .= "Use a {$columns}-column layout.\n";
-        }
-
-        if ($has_cta) {
-            $prompt .= "Include a prominent Call-To-Action button.\n";
-        }
-
-        if (! empty($brand_colors)) {
-            $prompt .= "Brand colors to use: {$brand_colors}.\n";
-        }
-
-        if (! empty($description)) {
-            $prompt .= "Additional details: {$description}\n";
-        }
-
-        $prompt .= "Make it visually polished, production-ready, and professional.";
-
-        return $prompt;
-    }
-
-    /**
-     * Generate with a two-pass refinement flow.
-     *
-     * Pass 1: Generate initial draft. Pass 2: Refine for polish and quality.
-     *
-     * @param string $prompt Initial user prompt.
-     * @return string|WP_Error
-     */
-    public static function generate_with_refinement(string $prompt): string|\WP_Error
-    {
-        // Pass 1: Generate initial draft
-        $draft = self::generate($prompt);
-        if (is_wp_error($draft)) {
-            return $draft;
-        }
-
-        // Pass 2: Refine the draft
-        $refine_prompt = "Here is a Gutenberg block section:\n\n{$draft}\n\n"
-            . "Improve it: enhance spacing, visual hierarchy, and styling. "
-            . "Make it more polished and production-ready. "
-            . "Return ONLY the improved block markup.";
-
-        return self::generate($refine_prompt);
-    }
-
-    /**
      * Get plugin design tokens for the AI model.
      *
      * @return string Plugin design tokens information for the AI model.
@@ -246,10 +181,11 @@ class AWB_AI_Generator
     /**
      * Generate block markup using the active provider.
      *
-     * @param string $prompt User prompt.
+     * @param string $prompt  User prompt.
+     * @param array{mode?: string, tone?: string, template?: string} $options Structured UI options.
      * @return string|WP_Error
      */
-    public static function generate(string $prompt): string|\WP_Error
+    public static function generate(string $prompt, array $options = []): string|\WP_Error
     {
         $provider = get_option('awb_ai_provider', 'anthropic');
         $key = self::get_api_key($provider);
@@ -267,27 +203,9 @@ class AWB_AI_Generator
         }
 
         $theme_context = self::get_theme_context();
-        $system_prompt = $theme_context . __("You are an expert WordPress developer and UI/UX designer specializing in Gutenberg block markup.
+        $system_prompt = $theme_context . self::base_rules() . self::mode_instruction($options['mode'] ?? 'blocks');
 
-        RULES:
-        - Respond ONLY with valid Gutenberg block HTML. No markdown fences, no explanations.
-        - Use WordPress core blocks where possible (wp:group, wp:columns, wp:cover, wp:buttons, etc.)
-        - Always produce COMPLETE, visually polished sections — never placeholder text like \"Lorem Ipsum\".
-        - Apply inline styles for spacing, typography, and color to ensure the output looks good out of the box.
-        - Use a modern, clean aesthetic: generous padding, clear visual hierarchy, readable font sizes.
-        - Sections must be mobile-responsive using Gutenberg's built-in layout system.
-        - Use semantic HTML inside blocks (h1-h3 for headings, p for paragraphs, etc.)
-        - When using wp:cover or hero sections, always include an overlay and legible text contrast.
-
-        STYLE GUIDELINES:
-        - Padding: sections should have at minimum 60px top/bottom padding
-        - Font sizes: headings ≥ 2rem, body text ≥ 1rem
-        - Colors: use CSS variables like var(--wp--preset--color--primary) where applicable
-        - Buttons: always style with background color, padding, border-radius
-        - Columns: max 3 columns on desktop, stack on mobile
-
-        OUTPUT FORMAT:
-        Raw Gutenberg block comment markup only. Start directly with <!-- wp: ...", 'awb-starter');
+        $user_content = self::tone_instruction($options['tone'] ?? '') . self::template_context($options['template'] ?? '') . $prompt;
         $headers = $config['headers'];
         $auth_header = $config['header_key'];
         $headers[$auth_header] = isset($config['auth_prefix'])
@@ -301,7 +219,7 @@ class AWB_AI_Generator
                 'max_tokens' => 4096,
                 'temperature' => 0.7,
                 'system'     => $system_prompt,
-                'messages'   => [['role' => 'user', 'content' => $prompt]],
+                'messages'   => [['role' => 'user', 'content' => $user_content]],
             ])
             : wp_json_encode([
                 'model'      => $config['model'],
@@ -309,7 +227,7 @@ class AWB_AI_Generator
                 'temperature' => 0.7,
                 'messages'   => [
                     ['role' => 'system', 'content' => $system_prompt],
-                    ['role' => 'user',   'content' => $prompt],
+                    ['role' => 'user',   'content' => $user_content],
                 ],
             ]);
 
@@ -366,5 +284,83 @@ class AWB_AI_Generator
             }
         }
         return $key;
+    }
+
+    /**
+     * Baseline system rules shared by every generation request.
+     */
+    private static function base_rules(): string
+    {
+        return __("You are an expert WordPress developer and UI/UX designer specializing in Gutenberg block markup.
+
+        RULES:
+        - Respond ONLY with valid Gutenberg block HTML. No markdown fences, no explanations.
+        - Use WordPress core blocks where possible (wp:group, wp:columns, wp:cover, wp:buttons, etc.)
+        - Always produce COMPLETE, visually polished sections — never placeholder text like \"Lorem Ipsum\".
+        - Apply inline styles for spacing, typography, and color to ensure the output looks good out of the box.
+        - Use a modern, clean aesthetic: generous padding, clear visual hierarchy, readable font sizes.
+        - Sections must be mobile-responsive using Gutenberg's built-in layout system.
+        - Use semantic HTML inside blocks (h1-h3 for headings, p for paragraphs, etc.)
+        - When using wp:cover or hero sections, always include an overlay and legible text contrast.
+
+        STYLE GUIDELINES:
+        - Padding: sections should have at minimum 60px top/bottom padding
+        - Font sizes: headings ≥ 2rem, body text ≥ 1rem
+        - Colors: use CSS variables like var(--wp--preset--color--primary) where applicable
+        - Buttons: always style with background color, padding, border-radius
+        - Columns: max 3 columns on desktop, stack on mobile", 'awb-starter');
+    }
+
+    /**
+     * Output-mode instruction appended to the system prompt.
+     *
+     * @param string $mode blocks|html|copy
+     */
+    private static function mode_instruction(string $mode): string
+    {
+        return match ($mode) {
+            'html'  => "\n\nOUTPUT FORMAT:\nPlain semantic HTML markup only — NO Gutenberg block comments (no <!-- wp: ... -->), no markdown fences, no explanations.",
+            'copy'  => "\n\nOUTPUT FORMAT:\nText copy only. Provide the headings and body text as plain text lines, one block of copy per line. No HTML tags, no block comments, no markdown.",
+            default => "\n\nOUTPUT FORMAT:\nRaw Gutenberg block comment markup only. Start directly with <!-- wp: ...",
+        };
+    }
+
+    /**
+     * Tone instruction prepended to the user prompt.
+     */
+    private static function tone_instruction(string $tone): string
+    {
+        $tones = [
+            'professional' => __('Write all copy in a professional, confident tone.', 'awb-starter'),
+            'friendly'     => __('Write all copy in a friendly, approachable tone.', 'awb-starter'),
+            'bold'         => __('Write all copy in a bold, punchy, high-energy tone.', 'awb-starter'),
+            'minimal'      => __('Keep all copy minimal and concise — short headlines, brief supporting text.', 'awb-starter'),
+        ];
+        return isset($tones[$tone]) ? $tones[$tone] . "\n" : '';
+    }
+
+    /**
+     * Structural context from a bundled block template, prepended to the user prompt.
+     *
+     * @param string $template Template filename without extension.
+     */
+    private static function template_context(string $template): string
+    {
+        if ('' === $template || ! preg_match('/^[a-z0-9_-]+$/', $template)) {
+            return '';
+        }
+        $path = AWB_PLUGIN_PATH . 'block-templates/' . $template . '.html';
+        if (! is_readable($path)) {
+            return '';
+        }
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $structure = file_get_contents($path);
+        if (empty($structure)) {
+            return '';
+        }
+        return sprintf(
+            "Use the following block structure as the base for your output. Keep its overall layout but adapt and enrich the content to fulfil the request:\n\n%s\n\n",
+            $structure
+        );
     }
 }

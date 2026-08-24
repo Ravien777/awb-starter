@@ -21,6 +21,8 @@
     initViewToggle();
     initPatternActions();
     initModal();
+    initBulkActions();
+    initOnboarding();
     initScaffold();
     initFontDeletion();
     initAITab(); // New: handles AI Generator tab interactions
@@ -401,24 +403,21 @@
       });
     });
 
-    // Preview (open modal).
+    // Preview (open modal and fetch rendered pattern).
     document.addEventListener("click", function (e) {
-      const btn = e.target.closest(".awb-insert-pattern");
+      const btn = e.target.closest(".awb-preview-pattern");
       if (!btn) return;
 
-      const card = btn.closest(".awb-pattern-card");
-      const title =
-        card?.querySelector(".awb-pattern-card__title")?.textContent ||
-        "Pattern preview";
-      const copy = card?.querySelector(".awb-copy-pattern");
-
-      openModal(title, "", copy?.dataset.content || "");
+      openModal(btn.dataset.title || "Pattern preview");
+      fetchPreview(btn.dataset.pattern || "");
     });
   }
 
   /* ── Modal ────────────────────────────────────────────────────────────── */
 
   let currentModalContent = "";
+  let currentPreviewData = null;
+  let previewView = "visual";
 
   function initModal() {
     const backdrop = document.getElementById("awb-modal-backdrop");
@@ -441,25 +440,47 @@
       });
     }
 
+    // Visual / Markup view toggle.
+    document.querySelectorAll("[data-preview-view]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        previewView = btn.dataset.previewView;
+        document.querySelectorAll("[data-preview-view]").forEach(function (b) {
+          b.classList.toggle("is-active", b === btn);
+          b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+        });
+        renderModalBody();
+      });
+    });
+
     // Close on Escape.
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeModal();
     });
   }
 
-  function openModal(title, description, content) {
+  function openModal(title) {
     const modal = document.getElementById("awb-preview-modal");
-    const titleEl = document.getElementById("awb-modal-title");
+    const titleEl = document.getElementById("awb-preview-modal-title");
     const body = document.getElementById("awb-modal-body");
     if (!modal) return;
 
-    currentModalContent = content;
+    currentModalContent = "";
+    currentPreviewData = null;
+    previewView = "visual";
+    document.querySelectorAll("[data-preview-view]").forEach(function (b) {
+      b.classList.toggle(
+        "is-active",
+        (b.dataset.previewView || "visual") === "visual",
+      );
+      b.setAttribute(
+        "aria-pressed",
+        (b.dataset.previewView || "visual") === "visual" ? "true" : "false",
+      );
+    });
     if (titleEl) titleEl.textContent = title;
-
-    if (body) {
-      // Render the raw block markup in an iframe-like container.
-      body.innerHTML = '<div class="awb-modal-render">' + content + "</div>";
-    }
+    if (body)
+      body.innerHTML =
+        '<div class="awb-modal-loading">Loading preview…</div>';
 
     modal.hidden = false;
     document.body.style.overflow = "hidden";
@@ -473,9 +494,301 @@
     if (modal) modal.hidden = true;
     document.body.style.overflow = "";
     currentModalContent = "";
+    currentPreviewData = null;
   }
 
-  /* ── Scaffold (stub — fires AJAX when wired up in PHP) ────────────────── */
+  function fetchPreview(patternName) {
+    if (!patternName) return;
+    const nonce = window.awbPatternIO?.editNonce || "";
+    const base = window.ajaxurl || "/wp-admin/admin-ajax.php";
+    const url =
+      base +
+      "?action=awb_preview_pattern&pattern=" +
+      encodeURIComponent(patternName) +
+      "&nonce=" +
+      encodeURIComponent(nonce);
+
+    fetch(url)
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        if (!json.success) {
+          renderModalError(json.data?.message || "Preview failed.");
+          return;
+        }
+        currentPreviewData = json.data;
+        currentModalContent = json.data.content || "";
+        renderModalBody();
+      })
+      .catch(function (err) {
+        renderModalError("Network error: " + err.message);
+      });
+  }
+
+  function renderModalError(message) {
+    const body = document.getElementById("awb-modal-body");
+    if (body)
+      body.innerHTML =
+        '<div class="awb-modal-loading awb-modal-loading--error"></div>';
+    const errEl = body?.querySelector(".awb-modal-loading--error");
+    if (errEl) errEl.textContent = message;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function renderModalBody() {
+    const body = document.getElementById("awb-modal-body");
+    if (!body) return;
+
+    if (previewView === "markup") {
+      body.innerHTML =
+        '<pre class="awb-modal-markup">' +
+        escapeHtml(currentModalContent) +
+        "</pre>";
+      return;
+    }
+    if (!currentPreviewData) {
+      body.innerHTML =
+        '<div class="awb-modal-loading">Loading preview…</div>';
+      return;
+    }
+
+    body.innerHTML =
+      '<iframe class="awb-modal-frame" sandbox="" title="Pattern visual preview"></iframe>';
+    const frame = body.querySelector(".awb-modal-frame");
+    if (frame) frame.srcdoc = buildPreviewDoc();
+  }
+
+  function buildPreviewDoc() {
+    const links = (currentPreviewData.css || [])
+      .map(function (u) {
+        return '<link rel="stylesheet" href="' + escapeHtml(u) + '">';
+      })
+      .join("");
+    const tokens = currentPreviewData.tokens
+      ? "<style>" + currentPreviewData.tokens + "</style>"
+      : "";
+    return (
+      '<!doctype html><html><head><meta charset="utf-8">' +
+      links +
+      tokens +
+      "<style>body{margin:0;padding:24px;font-family:system-ui,sans-serif;}" +
+      "img{max-width:100%;height:auto;}</style></head><body>" +
+      currentModalContent +
+      "</body></html>"
+    );
+  }
+
+  /* ── Library: bulk selection & actions ────────────────────────────────── */
+
+  function initBulkActions() {
+    const bar = document.getElementById("awb-bulk-bar");
+    if (!bar) return;
+
+    const countEl = document.getElementById("awb-bulk-count");
+    const statusEl = document.getElementById("awb-bulk-status");
+    const exportBtn = document.getElementById("awb-bulk-export");
+    const duplicateBtn = document.getElementById("awb-bulk-duplicate");
+    const deleteBtn = document.getElementById("awb-bulk-delete");
+    const clearBtn = document.getElementById("awb-bulk-clear");
+
+    const selectedChecks = () =>
+      Array.from(document.querySelectorAll(".awb-pattern-check:checked"));
+
+    function refresh() {
+      const checks = selectedChecks();
+      const actable = checks.filter((cb) => cb.dataset.actable === "1");
+      bar.hidden = checks.length === 0;
+      if (countEl) {
+        countEl.textContent =
+          checks.length + " pattern" + (checks.length !== 1 ? "s" : "") + " selected";
+      }
+      if (exportBtn) exportBtn.disabled = actable.length === 0;
+      if (duplicateBtn) duplicateBtn.disabled = actable.length === 0;
+      if (deleteBtn)
+        deleteBtn.disabled =
+          checks.filter(
+            (cb) => cb.closest(".awb-pattern-card")?.dataset.source === "user",
+          ).length === 0;
+    }
+
+    document.addEventListener("change", function (e) {
+      if (e.target instanceof HTMLInputElement && e.target.classList.contains("awb-pattern-check")) {
+        refresh();
+      }
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function () {
+        document
+          .querySelectorAll(".awb-pattern-check:checked")
+          .forEach(function (cb) {
+            cb.checked = false;
+          });
+        refresh();
+      });
+    }
+
+    if (exportBtn) {
+      exportBtn.addEventListener("click", function () {
+        const names = selectedChecks()
+          .filter((cb) => cb.dataset.actable === "1")
+          .map((cb) => cb.dataset.pattern);
+        bulkExport(names, statusEl);
+      });
+    }
+
+    if (duplicateBtn) {
+      duplicateBtn.addEventListener("click", function () {
+        const names = selectedChecks()
+          .filter((cb) => cb.dataset.actable === "1")
+          .map((cb) => cb.dataset.pattern);
+        bulkPost(
+          names,
+          "awb_duplicate_pattern",
+          window.awbPatternIO?.duplicateNonce || "",
+          duplicateBtn,
+          statusEl,
+          "Cloning",
+        );
+      });
+    }
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", function () {
+        const checks = selectedChecks().filter(
+          (cb) => cb.closest(".awb-pattern-card")?.dataset.source === "user",
+        );
+        const names = checks.map((cb) => cb.dataset.pattern);
+        const usagePages = checks.reduce(function (sum, cb) {
+          return sum + (parseInt(cb.closest(".awb-pattern-card")?.dataset.usage || "0", 10) || 0);
+        }, 0);
+        let warning =
+          "Delete " + names.length + " selected user pattern" + (names.length !== 1 ? "s" : "") +
+          "? This cannot be undone.";
+        if (usagePages > 0) {
+          warning +=
+            "\n\nWARNING: these patterns appear on " + usagePages + " published page" +
+            (usagePages !== 1 ? "s" : "") + ". Existing content will keep working but the pattern will disappear from the library.";
+        }
+        if (!window.confirm(warning)) return;
+        bulkPost(names, "awb_delete_pattern", window.awbPatternIO?.deleteNonce || "", deleteBtn, statusEl, "Deleting", true);
+      });
+    }
+
+    refresh();
+  }
+
+  function bulkExport(names, statusEl) {
+    const base = window.ajaxurl || "/wp-admin/admin-ajax.php";
+    const nonce = window.awbPatternIO?.nonce || "";
+    if (statusEl) statusEl.textContent = "Preparing " + names.length + " download(s)…";
+    names.forEach(function (name, i) {
+      setTimeout(function () {
+        const url =
+          base +
+          "?action=awb_export_pattern&pattern=" +
+          encodeURIComponent(name) +
+          "&nonce=" +
+          encodeURIComponent(nonce);
+        const frame = document.createElement("iframe");
+        frame.style.display = "none";
+        frame.src = url;
+        frame.addEventListener("load", function () {
+          setTimeout(function () {
+            frame.remove();
+          }, 5000);
+        });
+        document.body.appendChild(frame);
+        if (statusEl && i === names.length - 1) {
+          statusEl.textContent = "Downloads started.";
+        }
+      }, i * 500);
+    });
+  }
+
+  function bulkPost(names, action, nonce, btn, statusEl, verb, reloadAfter) {
+    if (!names.length) return;
+    const original = btn.textContent;
+    btn.disabled = true;
+    let done = 0;
+    let failed = 0;
+    const base = window.ajaxurl || "/wp-admin/admin-ajax.php";
+
+    function setStatus() {
+      if (statusEl) {
+        statusEl.textContent = verb + " " + done + " of " + names.length + "…";
+      }
+    }
+
+    function next() {
+      if (done + failed >= names.length) {
+        btn.disabled = false;
+        btn.textContent = original;
+        if (statusEl) {
+          statusEl.textContent =
+            verb.replace(/ing$/, "ed") + " " + (done - failed >= 0 ? done : 0) +
+            (failed ? ", " + failed + " failed." : ".");
+        }
+        if (reloadAfter) {
+          setTimeout(function () {
+            window.location.reload();
+          }, 800);
+        } else if (failed > 0) {
+          window.alert(failed + " of " + names.length + " operations failed.");
+        }
+        return;
+      }
+      setStatus();
+      const name = names[done];
+      const fd = new FormData();
+      fd.append("action", action);
+      fd.append("nonce", nonce);
+      fd.append("pattern", name);
+      fetch(base, { method: "POST", body: fd })
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (json) {
+          if (json.success) {
+            done++;
+          } else {
+            failed++;
+          }
+        })
+        .catch(function () {
+          failed++;
+        })
+        .finally(next);
+    }
+    next();
+  }
+
+  /* ── Onboarding checklist dismissal ───────────────────────────────────── */
+
+  function initOnboarding() {
+    const dismissBtn = document.getElementById("awb-onboarding-dismiss");
+    if (!dismissBtn) return;
+
+    dismissBtn.addEventListener("click", function () {
+      const card = document.getElementById("awb-onboarding");
+      if (card) card.remove();
+
+      const fd = new FormData();
+      fd.append("action", "awb_dismiss_onboarding");
+      fd.append("nonce", dismissBtn.dataset.nonce || "");
+      fetch(ajaxurl || "/wp-admin/admin-ajax.php", { method: "POST", body: fd });
+    });
+  }
+
+  /* ── Site Scaffold ────────────────────────────────────────────────────── */
 
   function initScaffold() {
     document.querySelectorAll(".awb-scaffold-trigger").forEach(function (btn) {
@@ -493,7 +806,6 @@
 
         appendLog(list, "info", 'Requesting "' + scaffold + '" scaffold…');
 
-        // AJAX call — PHP handler at wp_ajax_awb_scaffold (add to plugin).
         const data = new FormData();
         data.append("action", "awb_scaffold");
         data.append("scaffold", scaffold);
@@ -516,8 +828,7 @@
               appendLog(
                 list,
                 "error",
-                response.data?.message ||
-                  "Scaffold handler not yet implemented — add wp_ajax_awb_scaffold to the plugin.",
+                response.data?.message || "Scaffold failed.",
               );
             }
           })
@@ -578,6 +889,10 @@
     const genBtn = document.getElementById("awb-ai-generate");
     const clearBtn = document.getElementById("awb-ai-clear");
     const copyBtn = document.getElementById("awb-ai-copy-output");
+    const insertBtn = document.getElementById("awb-ai-insert-output");
+    const modeEl = document.getElementById("awb-ai-mode");
+    const toneEl = document.getElementById("awb-ai-tone");
+    const templateEl = document.getElementById("awb-ai-template");
     const promptEl = document.getElementById("awb-ai-prompt");
     const outputEl = document.getElementById("awb-ai-output");
     const statusEl = document.getElementById("awb-ai-status-label");
@@ -645,12 +960,16 @@
       }
       outputEl.value = "";
       if (copyBtn) copyBtn.disabled = true;
+      if (insertBtn) insertBtn.disabled = true;
 
       try {
         const fd = new FormData();
         fd.append("action", "awb_generate");
         fd.append("nonce", genBtn.dataset.nonce);
         fd.append("prompt", prompt);
+        fd.append("mode", modeEl ? modeEl.value : "blocks");
+        fd.append("tone", toneEl ? toneEl.value : "");
+        fd.append("template", templateEl ? templateEl.value : "");
 
         const res = await fetch(ajaxurl || "/wp-admin/admin-ajax.php", {
           method: "POST",
@@ -661,6 +980,9 @@
         if (json.success) {
           outputEl.value = json.data.blocks;
           if (copyBtn) copyBtn.disabled = false;
+          if (insertBtn && (!modeEl || modeEl.value !== "copy")) {
+            insertBtn.disabled = false;
+          }
           if (statusEl) {
             statusEl.textContent = "Done!";
             statusEl.style.color = "#2e7d32";
@@ -690,6 +1012,49 @@
         if (outputEl) outputEl.value = "";
         if (statusEl) statusEl.textContent = "";
         if (copyBtn) copyBtn.disabled = true;
+        if (insertBtn) insertBtn.disabled = true;
+      });
+    }
+
+    // Insert into editor — creates a draft page containing the generated
+    // markup and opens it in the block editor.
+    if (insertBtn) {
+      insertBtn.addEventListener("click", function () {
+        const content = outputEl?.value?.trim();
+        if (!content) return;
+
+        const orig = insertBtn.textContent;
+        insertBtn.disabled = true;
+        insertBtn.textContent = "Creating…";
+
+        const fd = new FormData();
+        fd.append("action", "awb_ai_draft");
+        fd.append("nonce", insertBtn.dataset.nonce || "");
+        fd.append("content", content);
+
+        fetch(ajaxurl || "/wp-admin/admin-ajax.php", { method: "POST", body: fd })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success && data.data?.edit_link) {
+              window.location.href = data.data.edit_link;
+              return;
+            }
+            insertBtn.disabled = false;
+            insertBtn.textContent = orig;
+            if (statusEl) {
+              statusEl.textContent =
+                "Insert failed: " + (data.data?.message || "Unknown error");
+              statusEl.style.color = "#c62828";
+            }
+          })
+          .catch((err) => {
+            insertBtn.disabled = false;
+            insertBtn.textContent = orig;
+            if (statusEl) {
+              statusEl.textContent = "Insert failed: " + err.message;
+              statusEl.style.color = "#c62828";
+            }
+          });
       });
     }
 

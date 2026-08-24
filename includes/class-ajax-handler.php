@@ -28,6 +28,21 @@ class AWB_Ajax_Handler
         add_action('wp_ajax_awb_get_pattern_source',     [$this, 'get_pattern_source']);
         add_action('wp_ajax_awb_save_pattern_source',    [$this, 'save_pattern_source']);
         add_action('wp_ajax_awb_delete_pattern',         [$this, 'delete_pattern']);
+        add_action('wp_ajax_awb_scaffold',               [$this, 'handle_scaffold']);
+        add_action('wp_ajax_awb_ai_draft',               [$this, 'create_ai_draft']);
+        add_action('wp_ajax_awb_preview_pattern',        [$this, 'preview_pattern']);
+        add_action('wp_ajax_awb_dismiss_onboarding',     [$this, 'dismiss_onboarding']);
+        add_action('wp_ajax_awb_store_manifest',         [$this, 'store_manifest']);
+    }
+
+    public function dismiss_onboarding(): void
+    {
+        check_ajax_referer('awb_dismiss_onboarding', 'nonce');
+        if (! current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'awb-starter')], 403);
+        }
+        AWB_Onboarding::dismiss();
+        wp_send_json_success();
     }
 
     public function handle_generate(): void
@@ -40,11 +55,52 @@ class AWB_Ajax_Handler
         if (empty($prompt)) {
             wp_send_json_error(['message' => __('No prompt provided.', 'awb-starter')]);
         }
-        $result = AWB_AI_Generator::generate($prompt);
+        $options = [
+            'mode'     => sanitize_key(wp_unslash($_POST['mode'] ?? 'blocks')),
+            'tone'     => sanitize_key(wp_unslash($_POST['tone'] ?? '')),
+            'template' => sanitize_title(wp_unslash($_POST['template'] ?? '')),
+        ];
+        $result = AWB_AI_Generator::generate($prompt, $options);
         if (is_wp_error($result)) {
             wp_send_json_error(['message' => $result->get_error_message()]);
         }
         wp_send_json_success(['blocks' => $result]);
+    }
+
+    public function handle_scaffold(): void
+    {
+        check_ajax_referer('awb_scaffold_nonce', 'nonce');
+        if (! current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'awb-starter')], 403);
+        }
+        $type = sanitize_key(wp_unslash($_POST['scaffold'] ?? ''));
+        if (! array_key_exists($type, AWB_Scaffold::definitions())) {
+            wp_send_json_error(['message' => __('Unknown scaffold type.', 'awb-starter')], 400);
+        }
+        wp_send_json_success(['log' => AWB_Scaffold::run($type)]);
+    }
+
+    public function create_ai_draft(): void
+    {
+        check_ajax_referer('awb_ai_draft', 'nonce');
+        if (! current_user_can('edit_pages')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'awb-starter')], 403);
+        }
+        // Block markup survives kses; raw scripts/styles are stripped for non-privileged users.
+        $content = wp_kses_post(wp_unslash($_POST['content'] ?? ''));
+        if (empty(trim($content))) {
+            wp_send_json_error(['message' => __('No generated content to insert.', 'awb-starter')], 400);
+        }
+        $post_id = wp_insert_post([
+            'post_title'   => __('AI Generated Section', 'awb-starter'),
+            'post_content' => $content,
+            'post_status'  => 'draft',
+            'post_type'    => 'page',
+        ]);
+        if (is_wp_error($post_id)) {
+            wp_send_json_error(['message' => $post_id->get_error_message()]);
+        }
+        wp_send_json_success(['edit_link' => (string) get_edit_post_link((int) $post_id, 'raw')]);
     }
 
     public function test_ai_api(): void
@@ -172,9 +228,8 @@ class AWB_Ajax_Handler
         if (empty($url)) {
             wp_send_json_error(['message' => __('No URL provided.', 'awb-starter')]);
         }
-        $allowed_host = parse_url('https://your-trusted-domain.com', PHP_URL_HOST);
-        if (parse_url($url, PHP_URL_HOST) !== $allowed_host) {
-            wp_send_json_error(['message' => __('Patterns can only be installed from the official repository.', 'awb-starter')]);
+        if (! AWB_Store::is_allowed_download($url)) {
+            wp_send_json_error(['message' => __('Patterns can only be installed from hosts configured in the Store settings.', 'awb-starter')]);
         }
         require_once ABSPATH . 'wp-admin/includes/file.php';
         $tmp_file = download_url($url, 30);
@@ -195,6 +250,102 @@ class AWB_Ajax_Handler
             }
             wp_send_json_error($error_data);
         }
+    }
+
+    public function store_manifest(): void
+    {
+        if (! current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Insufficient permissions.', 'awb-starter')], 403);
+        }
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (! wp_verify_nonce($nonce, 'awb_store_manifest')) {
+            wp_send_json_error(['message' => __('Security check failed.', 'awb-starter')], 403);
+        }
+        $url = AWB_Store::get_manifest_url();
+        if ('' === $url) {
+            wp_send_json_error(['code' => 'not_configured', 'message' => __('No Store manifest URL is configured yet.', 'awb-starter')]);
+        }
+        if (! AWB_Store::is_allowed_download($url)) {
+            wp_send_json_error(['code' => 'host_not_allowed', 'message' => __('The configured manifest URL points to a host that is not allowed.', 'awb-starter')]);
+        }
+        $response = wp_remote_get($url, ['timeout' => 15]);
+        if (is_wp_error($response)) {
+            wp_send_json_error(['message' => __('Could not reach the pattern store: ', 'awb-starter') . $response->get_error_message()]);
+        }
+        $code = (int) wp_remote_retrieve_response_code($response);
+        if ($code < 200 || $code >= 300) {
+            wp_send_json_error(['message' => sprintf(__('Pattern store returned HTTP %d.', 'awb-starter'), $code)]);
+        }
+        $body  = json_decode(wp_remote_retrieve_body($response), true);
+        $items = is_array($body['patterns'] ?? null) ? $body['patterns'] : [];
+        // Only pass through safe scalar fields to the browser.
+        $patterns = [];
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $download = esc_url_raw((string) ($item['download_url'] ?? ''));
+            if ('' === $download) {
+                continue;
+            }
+            $patterns[] = [
+                'title'        => sanitize_text_field((string) ($item['title'] ?? '')),
+                'description'  => sanitize_text_field((string) ($item['description'] ?? '')),
+                'version'      => sanitize_text_field((string) ($item['version'] ?? '')),
+                'author'       => sanitize_text_field((string) ($item['author'] ?? '')),
+                'thumbnail'    => esc_url_raw((string) ($item['thumbnail'] ?? '')),
+                'download_url' => $download,
+            ];
+        }
+        wp_send_json_success(['patterns' => $patterns]);
+    }
+
+    public function preview_pattern(): void
+    {
+        if (! current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Unauthorized', 'awb-starter')], 403);
+        }
+        $nonce = isset($_GET['nonce']) ? sanitize_text_field(wp_unslash($_GET['nonce'])) : '';
+        if (! wp_verify_nonce($nonce, 'awb_edit_pattern')) {
+            wp_send_json_error(['message' => __('Security check failed.', 'awb-starter')], 403);
+        }
+        $pattern_name = sanitize_text_field(wp_unslash($_GET['pattern'] ?? ''));
+        if (empty($pattern_name) || strpos($pattern_name, 'awb/') !== 0) {
+            wp_send_json_error(['message' => __('Invalid pattern', 'awb-starter')], 400);
+        }
+        if (! class_exists('WP_Block_Patterns_Registry')) {
+            wp_send_json_error(['message' => __('Pattern registry unavailable.', 'awb-starter')], 500);
+        }
+        $pattern = WP_Block_Patterns_Registry::get_instance()->get_registered($pattern_name);
+        if (! is_array($pattern) || empty($pattern['content'])) {
+            wp_send_json_error(['message' => __('Pattern content not found.', 'awb-starter')], 404);
+        }
+
+        // Collect the stylesheets the frontend would load for this pattern.
+        $css_urls = [];
+        $frontend = AWB_PLUGIN_URL . 'assets/css/frontend.css';
+        if (file_exists(AWB_PLUGIN_PATH . 'assets/css/frontend.css')) {
+            $css_urls[] = $frontend;
+        }
+        $assets   = AWB_Pattern_Loader::$pattern_assets[$pattern_name] ?? [];
+        $source   = $assets['source'] ?? 'core';
+        $base_url = ('user' === $source) ? AWB_USER_PATTERNS_URL : AWB_PLUGIN_URL;
+        $base_path = ('user' === $source) ? AWB_USER_PATTERNS_PATH : AWB_PLUGIN_PATH;
+        foreach (['css'] as $key) {
+            if (! empty($assets[$key])) {
+                $abs = $base_path . ltrim($assets[$key], '/');
+                if (file_exists($abs)) {
+                    $css_urls[] = $base_url . ltrim($assets[$key], '/');
+                }
+            }
+        }
+
+        wp_send_json_success([
+            'title'   => $pattern['title'] ?? '',
+            'content' => $pattern['content'],
+            'css'     => $css_urls,
+            'tokens'  => AWB_Asset_Loader::generate_design_tokens_css(),
+        ]);
     }
 
     private function is_path_within(string $path, string $root): bool

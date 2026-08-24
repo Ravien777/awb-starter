@@ -4,33 +4,54 @@
 (function () {
   "use strict";
 
-  const STORE_MANIFEST_URL = "https://your-site.com/awb-patterns/manifest.json"; // Update with your actual URL
-
   document.addEventListener("DOMContentLoaded", function () {
     const grid = document.getElementById("awb-store-grid");
     if (!grid) return;
+
+    // Single delegated listener for install buttons.
+    grid.addEventListener("click", function (e) {
+      const btn = e.target.closest(".awb-install-pattern");
+      if (!btn || btn.disabled) return;
+      handleInstall(btn);
+    });
 
     fetchPatterns(grid);
   });
 
   function fetchPatterns(grid) {
-    fetch(STORE_MANIFEST_URL)
-      .then((response) => {
-        if (!response.ok) throw new Error("Network response was not ok");
-        return response.json();
-      })
+    const fd = new FormData();
+    fd.append("action", "awb_store_manifest");
+    fd.append("nonce", awbStore.manifestNonce);
+
+    fetch(ajaxurl || "/wp-admin/admin-ajax.php", { method: "POST", body: fd })
+      .then((response) => response.json())
       .then((data) => {
-        if (data.patterns && Array.isArray(data.patterns)) {
-          renderPatterns(grid, data.patterns);
-        } else {
-          grid.innerHTML = "<p>No patterns available.</p>";
+        if (!data.success) {
+          if (data.data && data.data.code === "not_configured") {
+            renderNotConfigured(grid);
+            return;
+          }
+          throw new Error((data.data && data.data.message) || "Request failed");
         }
+        const patterns = Array.isArray(data.data.patterns)
+          ? data.data.patterns.filter((p) => p.download_url)
+          : [];
+        if (!patterns.length) {
+          grid.innerHTML = "<p>No patterns available.</p>";
+          return;
+        }
+        renderPatterns(grid, patterns);
       })
       .catch((error) => {
         grid.innerHTML =
           "<p>Failed to load patterns. Please try again later.</p>";
         console.error(error);
       });
+  }
+
+  function renderNotConfigured(grid) {
+    grid.innerHTML =
+      '<div class="awb-store-empty"><p><strong>Store not configured yet.</strong></p><p>Enter the URL of your manifest.json above and save to start installing patterns.</p></div>';
   }
 
   function renderPatterns(grid, patterns) {
@@ -42,7 +63,8 @@
       const img = card.querySelector(".awb-store-card__image img");
       img.src = pattern.thumbnail || "";
       img.alt = pattern.title;
-      card.querySelector(".awb-store-card__title").textContent = pattern.title;
+      card.querySelector(".awb-store-card__title").textContent =
+        pattern.title;
       card.querySelector(".awb-store-card__desc").textContent =
         pattern.description || "";
       card.querySelector(".awb-store-card__version").textContent =
@@ -53,13 +75,6 @@
       installBtn.dataset.url = pattern.download_url;
 
       grid.appendChild(card);
-    });
-
-    // Attach install handlers
-    grid.addEventListener("click", function (e) {
-      const btn = e.target.closest(".awb-install-pattern");
-      if (!btn) return;
-      handleInstall(btn);
     });
   }
 
@@ -74,7 +89,7 @@
 
     const formData = new FormData();
     formData.append("action", "awb_install_remote_pattern");
-    formData.append("nonce", awbStore.nonce); // to be localized
+    formData.append("nonce", awbStore.nonce);
     formData.append("url", url);
 
     fetch(ajaxurl, {
