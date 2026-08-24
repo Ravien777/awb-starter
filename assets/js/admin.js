@@ -17,8 +17,7 @@
     initApiTesting(); // New: handles AI key test buttons
     initColorTokenSync();
     initTokenPreview();
-    initLibrarySearch();
-    initLibraryFilter();
+    initLibraryFilters();
     initViewToggle();
     initPatternActions();
     initModal();
@@ -192,70 +191,158 @@
     output.textContent = lines.join("\n");
   }
 
-  /* ── Library: search ─────────────────────────────────────────────────── */
+  /* ── Library: search, filters & sorting ──────────────────────────────── */
 
-  function initLibrarySearch() {
+  const libraryState = {
+    search: "",
+    folder: "all",
+    category: "all",
+    source: "all",
+    asset: "all",
+    sort: "title-asc",
+  };
+
+  const librarySorters = {
+    "title-asc": function (a, b) {
+      return a.dataset.title.localeCompare(b.dataset.title);
+    },
+    "title-desc": function (a, b) {
+      return b.dataset.title.localeCompare(a.dataset.title);
+    },
+    "folder-asc": function (a, b) {
+      return (
+        a.dataset.folder.localeCompare(b.dataset.folder) ||
+        a.dataset.title.localeCompare(b.dataset.title)
+      );
+    },
+    source: function (a, b) {
+      const rank = function (card) {
+        return card.dataset.source === "core" ? 0 : 1;
+      };
+      return (
+        rank(a) - rank(b) || a.dataset.title.localeCompare(b.dataset.title)
+      );
+    },
+    "has-assets": function (a, b) {
+      const rank = function (card) {
+        return card.dataset.hasCss === "1" || card.dataset.hasJs === "1"
+          ? 0
+          : 1;
+      };
+      return (
+        rank(a) - rank(b) || a.dataset.title.localeCompare(b.dataset.title)
+      );
+    },
+  };
+
+  function initLibraryFilters() {
     const search = document.getElementById("awb-pattern-search");
-    if (!search) return;
+    const sort = document.getElementById("awb-pattern-sort");
+    if (!search && !sort && !document.querySelector(".awb-filter-btn")) return;
 
     let debounceTimer;
 
-    search.addEventListener("input", function () {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(applyFilters, 120);
-    });
-  }
-
-  /* ── Library: category filter ────────────────────────────────────────── */
-
-  let activeFilter = "all";
-
-  function initLibraryFilter() {
-    document.querySelectorAll(".awb-filter-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        document.querySelectorAll(".awb-filter-btn").forEach(function (b) {
-          b.classList.remove("is-active");
-          b.setAttribute("aria-pressed", "false");
-        });
-        btn.classList.add("is-active");
-        btn.setAttribute("aria-pressed", "true");
-        activeFilter = btn.dataset.filter;
-        applyFilters();
+    if (search) {
+      search.addEventListener("input", function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+          libraryState.search = search.value.toLowerCase().trim();
+          renderLibrary();
+        }, 120);
       });
-    });
+    }
+
+    if (sort) {
+      libraryState.sort = sort.value || libraryState.sort;
+      sort.addEventListener("change", function () {
+        libraryState.sort = sort.value;
+        renderLibrary();
+      });
+    }
+
+    document
+      .querySelectorAll(".awb-filter-btn[data-filter-type]")
+      .forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const type = btn.dataset.filterType;
+          if (!(type in libraryState)) return;
+
+          // Toggle active state within this group only.
+          document
+            .querySelectorAll(
+              '.awb-filter-btn[data-filter-type="' + type + '"]',
+            )
+            .forEach(function (sibling) {
+              sibling.classList.toggle("is-active", sibling === btn);
+              sibling.setAttribute(
+                "aria-pressed",
+                sibling === btn ? "true" : "false",
+              );
+            });
+
+          libraryState[type] = btn.dataset.filterValue;
+          renderLibrary();
+        });
+      });
+
+    renderLibrary();
   }
 
-  function applyFilters() {
-    const query = (document.getElementById("awb-pattern-search")?.value || "")
-      .toLowerCase()
-      .trim();
-    const cards = document.querySelectorAll(".awb-pattern-card");
+  function renderLibrary() {
+    const grid = document.getElementById("awb-patterns-grid");
+    const cards = Array.from(document.querySelectorAll(".awb-pattern-card"));
     const noResults = document.getElementById("awb-no-results");
-    let visibleCount = 0;
+    if (!grid || cards.length === 0) return;
 
+    const matches = cards.filter(function (card) {
+      const d = card.dataset;
+      const matchesSearch =
+        !libraryState.search ||
+        (d.keywords || "").includes(libraryState.search);
+      const matchesFolder =
+        libraryState.folder === "all" || d.folder === libraryState.folder;
+      const matchesCategory =
+        libraryState.category === "all" ||
+        (d.categories || "").split(" ").includes(libraryState.category);
+      const matchesSource =
+        libraryState.source === "all" || d.source === libraryState.source;
+      const matchesAsset =
+        libraryState.asset === "all" ||
+        (libraryState.asset === "css" ? d.hasCss === "1" : d.hasJs === "1");
+
+      return (
+        matchesSearch &&
+        matchesFolder &&
+        matchesCategory &&
+        matchesSource &&
+        matchesAsset
+      );
+    });
+
+    const sorter = librarySorters[libraryState.sort] || librarySorters["title-asc"];
+    matches.sort(sorter);
+
+    matches.forEach(function (card) {
+      card.classList.remove("is-hidden");
+      grid.appendChild(card); // Delegated click handlers keep working after reorder.
+    });
     cards.forEach(function (card) {
-      const cats = card.dataset.categories || "";
-      const keywords = (card.dataset.keywords || "").toLowerCase();
-
-      const matchesCat = activeFilter === "all" || cats.includes(activeFilter);
-      const matchesSearch = !query || keywords.includes(query);
-
-      if (matchesCat && matchesSearch) {
-        card.classList.remove("is-hidden");
-        visibleCount++;
-      } else {
+      if (!matches.includes(card)) {
         card.classList.add("is-hidden");
       }
     });
 
     if (noResults) {
-      noResults.hidden = visibleCount > 0;
+      noResults.hidden = matches.length > 0;
     }
 
     const countEl = document.getElementById("awb-pattern-count");
     if (countEl) {
       countEl.textContent =
-        visibleCount + " pattern" + (visibleCount !== 1 ? "s" : "");
+        matches.length +
+        " pattern" +
+        (matches.length !== 1 ? "s" : "") +
+        (matches.length !== cards.length ? " of " + cards.length : "");
     }
   }
 

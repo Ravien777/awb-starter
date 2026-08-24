@@ -766,6 +766,7 @@ $tabs = [
             <?php
             $all_patterns = [];
             if (! empty(AWB_Pattern_Loader::$pattern_files)) {
+                $split_list = static fn (string $value): array => array_values(array_filter(array_map('sanitize_text_field', array_map('trim', explode(',', $value)))));
                 foreach (AWB_Pattern_Loader::$pattern_files as $registered_name => $filepath) {
                     if (! file_exists($filepath) || ! is_readable($filepath)) continue;
                     $meta = get_file_data($filepath, ['title' => 'Title', 'slug' => 'Slug', 'categories' => 'Categories', 'keywords' => 'Keywords', 'description' => 'Description', 'css' => 'CSS', 'js' => 'JS']);
@@ -777,22 +778,82 @@ $tabs = [
                     }
                     $folder = dirname(str_replace(basename($filepath), '', $relative));
                     $folder = ($folder === '.' || $folder === '') ? 'root' : ltrim($folder, '/');
-                    $all_patterns[] = ['registered_name' => $registered_name, 'file' => $filepath, 'relative' => $relative, 'folder' => $folder, 'title' => sanitize_text_field($meta['title']), 'slug' => sanitize_title($meta['slug'] ?? basename($filepath, '.php')), 'categories' => array_filter(array_map('sanitize_text_field', array_map('trim', explode(',', $meta['categories'] ?? '')))), 'has_css' => ! empty($meta['css']), 'has_js' => ! empty($meta['js']), 'description' => sanitize_text_field($meta['description'] ?? ''), 'source' => $source];
+                    $all_patterns[] = [
+                        'registered_name' => $registered_name,
+                        'file'            => $filepath,
+                        'relative'        => $relative,
+                        'folder'          => $folder,
+                        'title'           => sanitize_text_field($meta['title']),
+                        'slug'            => sanitize_title($meta['slug'] ?? basename($filepath, '.php')),
+                        'categories'      => $split_list($meta['categories'] ?? ''),
+                        'keywords'        => $split_list($meta['keywords'] ?? ''),
+                        'has_css'         => ! empty($meta['css']),
+                        'has_js'          => ! empty($meta['js']),
+                        'description'     => sanitize_text_field($meta['description'] ?? ''),
+                        'source'          => $source,
+                    ];
                 }
             }
             $folders = array_unique(array_column($all_patterns, 'folder'));
             sort($folders);
+
+            $category_lists = array_filter(array_column($all_patterns, 'categories'));
+            $all_categories = $category_lists ? array_values(array_unique(array_merge(...$category_lists))) : [];
+            sort($all_categories, SORT_FLAG_CASE | SORT_STRING);
             ?>
             <div class="awb-patterns">
                 <div class="awb-patterns__toolbar">
                     <h2>Pattern Library <span class="awb-badge" id="awb-pattern-count"><?php echo count($all_patterns); ?> patterns</span></h2>
-                    <div class="awb-patterns__filter">
-                        <input type="search" id="awb-pattern-search" placeholder="Search patterns…" class="awb-search-input">
-                        <div class="awb-patterns__filter-groups">
-                            <button type="button" class="awb-filter-btn is-active" data-filter="all">All</button>
+                    <div class="awb-patterns__controls">
+                        <input type="search" id="awb-pattern-search" placeholder="Search title, description, keywords…" class="awb-search-input" aria-label="Search patterns">
+                        <select id="awb-pattern-sort" class="awb-pattern-sort" aria-label="Sort patterns">
+                            <option value="title-asc">Title A–Z</option>
+                            <option value="title-desc">Title Z–A</option>
+                            <option value="folder-asc">Folder A–Z</option>
+                            <option value="source">Source (Core first)</option>
+                            <option value="has-assets">Has assets first</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="awb-patterns__filter-row">
+                    <div class="awb-filter-group">
+                        <span class="awb-filter-group__label">Folder</span>
+                        <div class="awb-filter-group__options">
+                            <button type="button" class="awb-filter-btn is-active" data-filter-type="folder" data-filter-value="all" aria-pressed="true">All</button>
                             <?php foreach ($folders as $folder) : ?>
-                                <button type="button" class="awb-filter-btn" data-filter="<?php echo esc_attr($folder); ?>"><?php echo esc_html(ucfirst($folder)); ?></button>
+                                <button type="button" class="awb-filter-btn" data-filter-type="folder" data-filter-value="<?php echo esc_attr($folder); ?>" aria-pressed="false"><?php echo esc_html(ucfirst($folder)); ?></button>
                             <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <?php if (! empty($all_categories)) : ?>
+                        <div class="awb-filter-group">
+                            <span class="awb-filter-group__label">Category</span>
+                            <div class="awb-filter-group__options">
+                                <button type="button" class="awb-filter-btn is-active" data-filter-type="category" data-filter-value="all" aria-pressed="true">All</button>
+                                <?php foreach ($all_categories as $category) : ?>
+                                    <button type="button" class="awb-filter-btn" data-filter-type="category" data-filter-value="<?php echo esc_attr(strtolower($category)); ?>" aria-pressed="false"><?php echo esc_html(ucwords(str_replace(['-', '_'], ' ', $category))); ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="awb-filter-group">
+                        <span class="awb-filter-group__label">Source</span>
+                        <div class="awb-filter-group__options">
+                            <button type="button" class="awb-filter-btn is-active" data-filter-type="source" data-filter-value="all" aria-pressed="true">All</button>
+                            <button type="button" class="awb-filter-btn" data-filter-type="source" data-filter-value="core" aria-pressed="false">Core</button>
+                            <button type="button" class="awb-filter-btn" data-filter-type="source" data-filter-value="user" aria-pressed="false">User</button>
+                        </div>
+                    </div>
+
+                    <div class="awb-filter-group">
+                        <span class="awb-filter-group__label">Assets</span>
+                        <div class="awb-filter-group__options">
+                            <button type="button" class="awb-filter-btn is-active" data-filter-type="asset" data-filter-value="all" aria-pressed="true">All</button>
+                            <button type="button" class="awb-filter-btn" data-filter-type="asset" data-filter-value="css" aria-pressed="false">Has CSS</button>
+                            <button type="button" class="awb-filter-btn" data-filter-type="asset" data-filter-value="js" aria-pressed="false">Has JS</button>
                         </div>
                     </div>
                 </div>
@@ -804,7 +865,15 @@ $tabs = [
                 <?php else : ?>
                     <div class="awb-patterns__grid" id="awb-patterns-grid">
                         <?php foreach ($all_patterns as $pattern) : ?>
-                            <div class="awb-pattern-card" data-folder="<?php echo esc_attr($pattern['folder']); ?>" data-title="<?php echo esc_attr(strtolower($pattern['title'])); ?>" data-categories="<?php echo esc_attr($pattern['folder']); ?>" data-keywords="<?php echo esc_attr(strtolower($pattern['folder'] . ' ' . $pattern['title'] . ' ' . implode(' ', $pattern['categories']))); ?>">
+                            <div class="awb-pattern-card"
+                                data-folder="<?php echo esc_attr($pattern['folder']); ?>"
+                                data-title="<?php echo esc_attr(strtolower($pattern['title'])); ?>"
+                                data-slug="<?php echo esc_attr(strtolower($pattern['slug'])); ?>"
+                                data-categories="<?php echo esc_attr(implode(' ', array_map('strtolower', $pattern['categories']))); ?>"
+                                data-keywords="<?php echo esc_attr(strtolower(implode(' ', array_filter([$pattern['folder'], $pattern['title'], implode(' ', $pattern['categories']), implode(' ', $pattern['keywords']), $pattern['description'], $pattern['slug']])))); ?>"
+                                data-source="<?php echo esc_attr($pattern['source']); ?>"
+                                data-has-css="<?php echo $pattern['has_css'] ? '1' : '0'; ?>"
+                                data-has-js="<?php echo $pattern['has_js'] ? '1' : '0'; ?>">
                                 <div class="awb-pattern-card__header">
                                     <span class="awb-pattern-card__folder"><?php echo esc_html($pattern['folder']); ?></span>
                                     <div class="awb-pattern-card__badges">
