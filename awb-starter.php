@@ -1,16 +1,18 @@
 <?php
 
 /**
- * Plugin Name:     AWB Starter
- * Plugin URI:      https://your-site.com/
- * Description:     Rapid-development starter plugin with block patterns, templates, and smart asset loading.
- * Version:         2.2.3
- * Author:          WLM+
- * Text Domain:     awb-starter
- * Requires PHP:    8.0
- *
- * @package AWBStarter 
- */
+* Plugin Name:       AWB Starter
+* Plugin URI:        https://github.com/Ravien777/awb-starter
+* Description:       Rapid-development starter plugin with block patterns, templates, and smart asset loading.
+* Version:           2.2.3
+* Author:            WLM+
+* Text Domain:       awb-starter
+* Requires PHP:      8.0
+* GitHub Plugin URI: https://github.com/Ravien777/awb-starter
+* Primary Branch:    main
+*
+* @package AWBStarter 
+*/
 
 if (! defined('ABSPATH')) {
     exit;
