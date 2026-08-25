@@ -4,7 +4,7 @@
 * Plugin Name:       AWB Starter
 * Plugin URI:        https://github.com/Ravien777/awb-starter
 * Description:       Rapid-development starter plugin with block patterns, templates, and smart asset loading.
-* Version:           2.2.7
+* Version:           2.2.8
 * Author:            WLM+
 * Text Domain:       awb-starter
 * Requires PHP:      8.0
@@ -17,7 +17,7 @@ if (! defined('ABSPATH')) {
 }
 
 // Plugin constants.
-define('AWB_VERSION',     '2.2.7');
+define('AWB_VERSION',     '2.2.8');
 define('AWB_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('AWB_PLUGIN_URL',  plugin_dir_url(__FILE__));
 
@@ -118,6 +118,26 @@ final class AWB_Starter
 }
 
 AWB_Starter::instance();
+
+/*
+ * Abilities API — register AWB capabilities for MCP integration.
+ * Requires WordPress 6.9+ (Abilities API in core) and the
+ * wordpress/mcp-adapter plugin for MCP transport.
+ * Silently no-ops when the Abilities API is not available.
+ */
+add_action('wp_abilities_api_categories_init', function (): void {
+    if (function_exists('wp_register_ability_category')) {
+        wp_register_ability_category('awb-starter', [
+            'label'       => __('AWB Starter', 'awb-starter'),
+            'description' => __('Block patterns, AI generation, and site scaffolding.', 'awb-starter'),
+        ]);
+    }
+});
+add_action('wp_abilities_api_init', function (): void {
+    if (class_exists('AWB_Abilities')) {
+        AWB_Abilities::register();
+    }
+});
 
 // Create user-patterns directory structure on activation.
 register_activation_hook(__FILE__, function (): void {
