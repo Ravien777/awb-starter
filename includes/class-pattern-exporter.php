@@ -12,35 +12,55 @@ if (! defined('ABSPATH')) {
 
 class AWB_Pattern_Exporter
 {
-    public static function stream(string $registered_name): void
+    /**
+     * Build a ZIP archive for a pattern and return the temporary file path.
+     *
+     * @param string $registered_name The registered pattern name.
+     * @return string|WP_Error Path to the ZIP on success, WP_Error on failure.
+     */
+    public static function build(string $registered_name): string|\WP_Error
     {
-        if (! class_exists('ZipArchive')) {
-            wp_die(
-                esc_html__('Export failed: ZipArchive is not available on this server. Please ask your host to enable the PHP zip extension.', 'awb-starter'),
-                esc_html__('Export Error', 'awb-starter'),
-                ['response' => 500]
-            );
+        if (! class_exists(\ZipArchive::class)) {
+            return new \WP_Error('zip_unavailable', __('Export failed: ZipArchive is not available on this server. Please ask your host to enable the PHP zip extension.', 'awb-starter'));
         }
-        $pattern_file = self::resolve_pattern_file($registered_name);
-        $assets       = self::resolve_assets($registered_name);
-        $meta         = self::read_meta($pattern_file);
-        $zip_path     = self::build_zip($registered_name, $pattern_file, $assets, $meta);
-        self::send_zip($zip_path, $meta['slug']);
+        $file_res = self::resolve_pattern_file($registered_name);
+        if (is_wp_error($file_res)) {
+            return $file_res;
+        }
+        $assets = self::resolve_assets($registered_name);
+        $meta   = self::read_meta($file_res);
+        return self::build_zip($registered_name, $file_res, $assets, $meta);
     }
 
-    private static function resolve_pattern_file(string $registered_name): string
+    public static function stream(string $registered_name): void
+    {
+        $zip_res = self::build($registered_name);
+        if (is_wp_error($zip_res)) {
+            wp_die(
+                esc_html__($zip_res->get_error_message(), 'awb-starter'),
+                esc_html__('Export Error', 'awb-starter'),
+                ['response' => $zip_res->get_error_data() ? 404 : 500]
+            );
+        }
+        $meta = self::read_meta(self::resolve_pattern_file($registered_name));
+        self::send_zip($zip_res, $meta['slug']);
+    }
+
+    /**
+     * Resolve the pattern file path for export.
+     *
+     * @param string $registered_name The registered pattern name.
+     * @return string|WP_Error The file path on success, WP_Error on failure.
+     */
+    private static function resolve_pattern_file(string $registered_name): string|\WP_Error
     {
         $files = AWB_Pattern_Loader::$pattern_files;
         if (empty($files[$registered_name])) {
-            wp_die(
-                esc_html__('Export failed: pattern not found in file map. It may be an HTML template which is not exportable.', 'awb-starter'),
-                esc_html__('Export Error', 'awb-starter'),
-                ['response' => 404]
-            );
+            return new \WP_Error('pattern_not_found', __('Export failed: pattern not found in file map. It may be an HTML template which is not exportable.', 'awb-starter'));
         }
         $path = $files[$registered_name];
         if (! is_readable($path)) {
-            wp_die(esc_html__('Export failed: pattern file is not readable.', 'awb-starter'), esc_html__('Export Error', 'awb-starter'), ['response' => 500]);
+            return new \WP_Error('file_unreadable', __('Export failed: pattern file is not readable.', 'awb-starter'));
         }
         return $path;
     }
@@ -80,22 +100,29 @@ class AWB_Pattern_Exporter
         ];
     }
 
-    private static function build_zip(string $registered_name, string $pattern_file, array $assets, array $meta): string
+    private static function build_zip(string $registered_name, string $pattern_file, array $assets, array $meta): string|\WP_Error
     {
         $slug   = $meta['slug'] ?: sanitize_title(str_replace('awb/', '', $registered_name));
         $prefix = trailingslashit($slug);
         $tmp    = wp_tempnam($slug . '.zip');
-        $zip    = new ZipArchive();
-        $opened = $zip->open($tmp, ZipArchive::OVERWRITE);
+        if (! $tmp) {
+            return new \WP_Error('tempnam_failed', __('Export failed: could not create temporary file.', 'awb-starter'));
+        }
+        $zip    = new \ZipArchive();
+        $opened = $zip->open($tmp, \ZipArchive::OVERWRITE);
         if (true !== $opened) {
             @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors
-            wp_die(sprintf(esc_html__('Export failed: could not create ZIP archive (error code %d).', 'awb-starter'), (int) $opened), esc_html__('Export Error', 'awb-starter'), ['response' => 500]);
+            return new \WP_Error('zip_open_failed', sprintf(__('Export failed: could not create ZIP archive (error code %d).', 'awb-starter'), (int) $opened));
         }
         $zip->addFile($pattern_file, $prefix . 'pattern.php');
         $has_css = ! empty($assets['css_abs']);
-        if ($has_css) $zip->addFile($assets['css_abs'], $prefix . 'pattern.css');
+        if ($has_css) {
+            $zip->addFile($assets['css_abs'], $prefix . 'pattern.css');
+        }
         $has_js = ! empty($assets['js_abs']);
-        if ($has_js) $zip->addFile($assets['js_abs'], $prefix . 'pattern.js');
+        if ($has_js) {
+            $zip->addFile($assets['js_abs'], $prefix . 'pattern.js');
+        }
         $manifest = [
             'title'       => $meta['title'],
             'slug'        => $slug,

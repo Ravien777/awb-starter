@@ -4,7 +4,7 @@
 * Plugin Name:       AWB Starter
 * Plugin URI:        https://github.com/Ravien777/awb-starter
 * Description:       Rapid-development starter plugin with block patterns, templates, and smart asset loading.
-* Version:           2.2.6
+* Version:           2.2.7
 * Author:            WLM+
 * Text Domain:       awb-starter
 * Requires PHP:      8.0
@@ -17,7 +17,7 @@ if (! defined('ABSPATH')) {
 }
 
 // Plugin constants.
-define('AWB_VERSION',     '2.2.6');
+define('AWB_VERSION',     '2.2.7');
 define('AWB_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('AWB_PLUGIN_URL',  plugin_dir_url(__FILE__));
 
@@ -103,6 +103,12 @@ final class AWB_Starter
          * is true, so there is no duplicate execution risk.
          */
         new AWB_Header_Switcher();
+
+        // REST API routes — loaded on every request so the REST server
+        // can register /awb/v1/* endpoints regardless of context.
+        if (class_exists('AWB_REST')) {
+            new AWB_REST();
+        }
 
         if (is_admin()) {
             new AWB_Settings();

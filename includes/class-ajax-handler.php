@@ -350,9 +350,7 @@ class AWB_Ajax_Handler
 
     private function is_path_within(string $path, string $root): bool
     {
-        $norm_path = wp_normalize_path($path);
-        $norm_root = wp_normalize_path(trailingslashit($root));
-        return str_starts_with($norm_path, $norm_root);
+        return AWB_Pattern_Loader::is_path_within($path, $root);
     }
 
     public function get_pattern_source(): void

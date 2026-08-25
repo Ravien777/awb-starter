@@ -63,4 +63,84 @@ class AWB_Store
 		$host = strtolower((string) parse_url($url, PHP_URL_HOST));
 		return '' !== $host && in_array($host, self::get_allowed_hosts(), true);
 	}
+
+	/**
+	 * Fetch the store manifest and return sanitized pattern data.
+	 *
+	 * @return array|WP_Error Array of patterns on success, WP_Error on failure.
+	 */
+	public static function fetch_manifest(): array|\WP_Error
+	{
+		$url = self::get_manifest_url();
+		if ('' === $url) {
+			return new \WP_Error('not_configured', __('No Store manifest URL is configured yet.', 'awb-starter'));
+		}
+		if (! self::is_allowed_download($url)) {
+			return new \WP_Error('host_not_allowed', __('The configured manifest URL points to a host that is not allowed.', 'awb-starter'));
+		}
+		$response = wp_remote_get($url, ['timeout' => 15]);
+		if (is_wp_error($response)) {
+			return new \WP_Error('store_unreachable', __('Could not reach the pattern store: ', 'awb-starter') . $response->get_error_message());
+		}
+		$code = (int) wp_remote_retrieve_response_code($response);
+		if ($code < 200 || $code >= 300) {
+			return new \WP_Error('store_http_error', sprintf(__('Pattern store returned HTTP %d.', 'awb-starter'), $code));
+		}
+		$body  = json_decode(wp_remote_retrieve_body($response), true);
+		$items = is_array($body['patterns'] ?? null) ? $body['patterns'] : [];
+		$patterns = [];
+		foreach ($items as $item) {
+			if (! is_array($item)) {
+				continue;
+			}
+			$download = esc_url_raw((string) ($item['download_url'] ?? ''));
+			if ('' === $download) {
+				continue;
+			}
+			$patterns[] = [
+				'title'        => sanitize_text_field((string) ($item['title'] ?? '')),
+				'description'  => sanitize_text_field((string) ($item['description'] ?? '')),
+				'version'      => sanitize_text_field((string) ($item['version'] ?? '')),
+				'author'       => sanitize_text_field((string) ($item['author'] ?? '')),
+				'thumbnail'    => esc_url_raw((string) ($item['thumbnail'] ?? '')),
+				'download_url' => $download,
+			];
+		}
+		return $patterns;
+	}
+
+	/**
+	 * Install a pattern from a remote URL.
+	 *
+	 * @param string $url The download URL.
+	 * @return array|WP_Error Pattern data on success, WP_Error on failure.
+	 */
+	public static function install(string $url): array|\WP_Error
+	{
+		$url = esc_url_raw($url);
+		if ('' === $url) {
+			return new \WP_Error('no_url', __('No URL provided.', 'awb-starter'));
+		}
+		if (! self::is_allowed_download($url)) {
+			return new \WP_Error('host_not_allowed', __('Patterns can only be installed from hosts configured in the Store settings.', 'awb-starter'));
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		$tmp = download_url($url, 30);
+		if (is_wp_error($tmp)) {
+			return new \WP_Error('download_failed', $tmp->get_error_message());
+		}
+		$result = AWB_Pattern_Importer::install_from_zip($tmp, false);
+		@unlink($tmp);
+		if (! empty($result['success'])) {
+			return $result['data'];
+		}
+		$error_data = ['message' => $result['error'] ?? __('Installation failed.', 'awb-starter')];
+		if (isset($result['collision'])) {
+			$error_data['code']  = 'collision';
+			$error_data['title'] = $result['title'];
+			$error_data['slug']  = $result['slug'];
+			$error_data['files'] = $result['files'];
+		}
+		return new \WP_Error('install_failed', $result['error'] ?? __('Installation failed.', 'awb-starter'), $error_data);
+	}
 }

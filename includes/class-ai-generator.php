@@ -264,6 +264,39 @@ class AWB_AI_Generator
     }
 
     /**
+     * Generate content and create a draft page with it.
+     *
+     * @param string $prompt  User prompt.
+     * @param array  $options Structured UI options (mode, tone, template).
+     * @return array|WP_Error Array with edit_url and post_id on success, WP_Error on failure.
+     */
+    public static function create_draft_page(string $prompt, array $options = []): array|\WP_Error
+    {
+        $content = self::generate($prompt, $options);
+        if (is_wp_error($content)) {
+            return $content;
+        }
+        // Block markup survives kses; raw scripts/styles are stripped for non-privileged users.
+        $content = wp_kses_post($content);
+        if (empty(trim($content))) {
+            return new \WP_Error('empty_content', __('No generated content to insert.', 'awb-starter'));
+        }
+        $post_id = wp_insert_post([
+            'post_title'   => __('AI Generated Section', 'awb-starter'),
+            'post_content' => $content,
+            'post_status'  => 'draft',
+            'post_type'    => 'page',
+        ]);
+        if (is_wp_error($post_id)) {
+            return $post_id;
+        }
+        return [
+            'edit_url' => (string) get_edit_post_link((int) $post_id, 'raw'),
+            'post_id'  => (int) $post_id,
+        ];
+    }
+
+    /**
      * Get API key for a provider. Fallback to legacy key for backward compatibility.
      *
      * @param string $provider

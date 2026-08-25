@@ -400,4 +400,19 @@ class AWB_Header_Switcher
 
         return true;
     }
+
+    /**
+     * Get current header/footer settings.
+     *
+     * @return array Current settings.
+     */
+    public static function get_settings(): array
+    {
+        return [
+            'header_type'  => get_option(self::OPTION_HEADER_TYPE, 'none'),
+            'header_value' => get_option(self::OPTION_HEADER_VALUE, ''),
+            'footer_type'  => get_option(self::OPTION_FOOTER_TYPE, 'none'),
+            'footer_value' => get_option(self::OPTION_FOOTER_VALUE, ''),
+        ];
+    }
 }
