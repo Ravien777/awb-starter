@@ -2613,6 +2613,21 @@ input.awb-editor.awb-api-input {
   font-weight: 600;
 }
 
+.awb-sync-modal__drift-badge {
+  display: inline-block;
+  background: #fef3cd;
+  color: #856404;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.awb-sync-modal__item.is-drifted {
+  border-left: 3px solid #f59e0b;
+}
+
 .awb-sync-modal__empty {
   text-align: center;
   color: #646970;

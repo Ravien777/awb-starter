@@ -191,6 +191,8 @@ class AWB_Asset_Loader
                     'converting'     => __('Converting…', 'awb-starter'),
                     'convertConfirm' => __('This will replace the page content with a synced reference. A revision backup will be created. Continue?', 'awb-starter'),
                     'convertError'   => __('Conversion failed.', 'awb-starter'),
+                    'syncAnyway'     => __('Sync anyway', 'awb-starter'),
+                    'driftConfirm'   => __('This page has custom edits (%s) that differ from the pattern source. Converting will overwrite those edits with the current pattern content. A revision backup will be created. Continue?', 'awb-starter'),
                 ],
             ]);
 

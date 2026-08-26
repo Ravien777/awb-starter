@@ -161,6 +161,7 @@
                     var li = document.createElement('li');
                     li.className = 'awb-sync-modal__item';
                     if (u.already_synced) li.classList.add('is-synced');
+                    if (u.drifted) li.classList.add('is-drifted');
 
                     var info = document.createElement('span');
                     info.className = 'awb-sync-modal__item-info';
@@ -172,6 +173,20 @@
                     if (u.already_synced) {
                         status.textContent = cfg.i18n.alreadySynced || 'Synced';
                         status.classList.add('is-synced');
+                    } else if (u.drifted) {
+                        var driftBadge = document.createElement('span');
+                        driftBadge.className = 'awb-sync-modal__drift-badge';
+                        driftBadge.textContent = '⚠ ' + (u.diff_summary || 'Content differs');
+                        status.appendChild(driftBadge);
+
+                        var convertBtn = document.createElement('button');
+                        convertBtn.className = 'awb-btn awb-btn--small awb-btn--primary awb-sync-convert';
+                        convertBtn.dataset.postId = u.id;
+                        convertBtn.dataset.name = name;
+                        convertBtn.dataset.drifted = 'true';
+                        convertBtn.dataset.diffSummary = u.diff_summary || '';
+                        convertBtn.textContent = cfg.i18n.syncAnyway || 'Sync anyway';
+                        status.appendChild(convertBtn);
                     } else {
                         var convertBtn = document.createElement('button');
                         convertBtn.className = 'awb-btn awb-btn--small awb-btn--primary awb-sync-convert';
@@ -205,8 +220,17 @@
 
         var name   = btn.dataset.name;
         var postId = parseInt(btn.dataset.postId, 10);
+        var isDrifted = btn.dataset.drifted === 'true';
+        var diffSummary = btn.dataset.diffSummary || '';
 
-        if (!confirm(cfg.i18n.convertConfirm || 'This will replace the page content with a synced reference. A revision backup will be created. Continue?')) {
+        var confirmMsg;
+        if (isDrifted) {
+            confirmMsg = (cfg.i18n.driftConfirm || 'This page has custom edits (%s) that differ from the pattern source. Converting will overwrite those edits with the current pattern content. A revision backup will be created. Continue?').replace('%s', diffSummary);
+        } else {
+            confirmMsg = cfg.i18n.convertConfirm || 'This will replace the page content with a synced reference. A revision backup will be created. Continue?';
+        }
+
+        if (!confirm(confirmMsg)) {
             return;
         }
 

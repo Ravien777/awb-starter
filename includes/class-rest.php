@@ -833,12 +833,23 @@ class AWB_REST
 		$usages = [];
 		foreach ($posts as $post) {
 			$content = get_post_field('post_content', $post->ID);
-			$usages[] = [
-				'id'            => (int) $post->ID,
-				'title'         => $post->post_title,
-				'name'          => $post->post_name,
-				'already_synced' => strpos($content, $ref) !== false,
+			$synced  = strpos($content, $ref) !== false;
+			$usage   = [
+				'id'             => (int) $post->ID,
+				'title'          => $post->post_title,
+				'name'           => $post->post_name,
+				'already_synced' => $synced,
+				'drifted'        => false,
+				'diff_summary'   => '',
 			];
+
+			if (! $synced) {
+				$drift = AWB_Pattern_Sync::page_drift($name, $post->ID);
+				$usage['drifted']      = $drift['drifted'];
+				$usage['diff_summary'] = $drift['diff_summary'];
+			}
+
+			$usages[] = $usage;
 		}
 
 		return new WP_REST_Response(['usages' => $usages], 200);

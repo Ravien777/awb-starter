@@ -56,6 +56,72 @@ class AWB_Pattern_Sync
     }
 
     /**
+     * Compute diff between a pattern's rendered output and a page's stored content.
+     *
+     * Returns the number of meaningful block-level differences or 0 if in sync.
+     * Uses wp_text_diff on extracted text (stripped of HTML) for a quick check.
+     *
+     * @param string $name    e.g. awb/homepage
+     * @param int    $post_id The page/post ID.
+     * @return array{drifted: bool, diff_summary: string}
+     */
+    public static function page_drift(string $name, int $post_id): array
+    {
+        $post = get_post($post_id);
+        if (! $post) {
+            return ['drifted' => false, 'diff_summary' => ''];
+        }
+
+        $page_content = $post->post_content;
+
+        // Already synced reference → no drift possible
+        $ref = self::reference_markup($name);
+        if (strpos($page_content, $ref) !== false) {
+            return ['drifted' => false, 'diff_summary' => ''];
+        }
+
+        // Render the pattern's current source
+        $pattern = WP_Block_Patterns_Registry::get_instance()->get_registered($name);
+        if (! is_array($pattern) || empty($pattern['content'])) {
+            return ['drifted' => false, 'diff_summary' => ''];
+        }
+
+        // Strip the outer wp:html wrappers from both to compare inner content
+        $strip = function ($c) {
+            $c = preg_replace('/^<!-- wp:html -->\s*/m', '', $c);
+            $c = preg_replace('/\s*<!-- \/wp:html -->$/m', '', $c);
+            return trim($c);
+        };
+
+        $pattern_inner = $strip($pattern['content']);
+        $page_inner    = $strip($page_content);
+
+        // Normalise: literal WLM+ (pattern evaluation) vs dynamic PHP in source
+        // The pattern content is already evaluated; the page may have WLM+ as literal text.
+        $page_inner = str_replace('WLM+', get_bloginfo('name'), $page_inner);
+
+        if ($pattern_inner === $page_inner) {
+            return ['drifted' => false, 'diff_summary' => ''];
+        }
+
+        // Quick diff: strip tags for text-only comparison
+        $pat_text = wp_strip_all_tags($pattern_inner);
+        $page_text = wp_strip_all_tags($page_inner);
+
+        $diff = wp_text_diff($pat_text, $page_text, ['show_divs' => false]);
+        if (empty($diff)) {
+            return ['drifted' => false, 'diff_summary' => ''];
+        }
+
+        // Count diff lines to give a rough severity
+        $additions = substr_count($diff, '<ins>');
+        $deletions = substr_count($diff, '<del>');
+        $summary  = sprintf('%d change%s detected', $additions + $deletions, ($additions + $deletions) === 1 ? '' : 's');
+
+        return ['drifted' => true, 'diff_summary' => $summary];
+    }
+
+    /**
      * Build the core/pattern reference block markup for a pattern.
      *
      * @param string $name e.g. awb/homepage
