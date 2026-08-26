@@ -165,6 +165,33 @@ class AWB_REST
 			'callback'            => [$this, 'dismiss_onboarding'],
 			'permission_callback' => [$this, 'can_manage_options'],
 		]);
+
+		// ── Pattern Sync ────────────────────────────────────────────────
+		register_rest_route(self::NAMESPACE, '/patterns/(?P<name>awb/[\w-]+)/sync', [
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [$this, 'set_pattern_sync'],
+				'permission_callback' => [$this, 'can_manage_options'],
+				'args'                => [
+					'synced' => ['type' => 'boolean', 'required' => true],
+				],
+			],
+		]);
+
+		register_rest_route(self::NAMESPACE, '/patterns/(?P<name>awb/[\w-]+)/sync/usages', [
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => [$this, 'get_sync_usages'],
+			'permission_callback' => [$this, 'can_manage_options'],
+		]);
+
+		register_rest_route(self::NAMESPACE, '/patterns/(?P<name>awb/[\w-]+)/sync/convert', [
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => [$this, 'convert_sync_page'],
+			'permission_callback' => [$this, 'can_manage_options'],
+			'args'                => [
+				'post_id' => ['type' => 'integer', 'required' => true],
+			],
+		]);
 	}
 
 	// =========================================================================
@@ -216,6 +243,7 @@ class AWB_REST
 		}
 		$options['awb_scaffold_completed'] = get_option('awb_scaffold_completed', '');
 		$options['awb_onboarding_dismissed'] = get_option('awb_onboarding_dismissed', '');
+		$options['awb_synced_patterns'] = AWB_Pattern_Sync::get_synced();
 
 		return new WP_REST_Response($options, 200);
 	}
@@ -288,6 +316,7 @@ class AWB_REST
 				'source'      => $source,
 				'has_css'     => $has_css,
 				'has_js'      => $has_js,
+				'synced'      => AWB_Pattern_Sync::is_synced($pattern['name']),
 				'usage_count' => AWB_Pattern_Loader::get_usage_count($pattern['name']),
 			];
 		}
@@ -388,6 +417,7 @@ class AWB_REST
 			'content'     => $content,
 			'css'         => $css_content,
 			'js'          => $js_content,
+			'synced'      => AWB_Pattern_Sync::is_synced($name),
 			'usage_count' => AWB_Pattern_Loader::get_usage_count($name),
 		], 200);
 	}
@@ -766,6 +796,76 @@ class AWB_REST
 	{
 		AWB_Onboarding::dismiss();
 		return new WP_REST_Response(['message' => 'Onboarding dismissed.'], 200);
+	}
+
+	// =========================================================================
+	// Pattern Sync
+	// =========================================================================
+
+	public function set_pattern_sync(WP_REST_Request $request): WP_REST_Response
+	{
+		$name = $request->get_param('name');
+		if (empty($name) || 0 !== strpos($name, 'awb/')) {
+			return new WP_REST_Response(['message' => 'Invalid pattern name.'], 400);
+		}
+
+		$synced = (bool) $request->get_param('synced');
+		AWB_Pattern_Sync::set_synced($name, $synced);
+
+		return new WP_REST_Response([
+			'synced'  => $synced,
+			'message' => $synced
+				? __('Pattern is now synced.', 'awb-starter')
+				: __('Pattern sync disabled.', 'awb-starter'),
+		], 200);
+	}
+
+	public function get_sync_usages(WP_REST_Request $request): WP_REST_Response
+	{
+		$name = $request->get_param('name');
+		if (empty($name) || 0 !== strpos($name, 'awb/')) {
+			return new WP_REST_Response(['message' => 'Invalid pattern name.'], 400);
+		}
+
+		$posts = AWB_Pattern_Sync::get_usage_posts($name);
+		$ref   = AWB_Pattern_Sync::reference_markup($name);
+
+		$usages = [];
+		foreach ($posts as $post) {
+			$content = get_post_field('post_content', $post->ID);
+			$usages[] = [
+				'id'            => (int) $post->ID,
+				'title'         => $post->post_title,
+				'name'          => $post->post_name,
+				'already_synced' => strpos($content, $ref) !== false,
+			];
+		}
+
+		return new WP_REST_Response(['usages' => $usages], 200);
+	}
+
+	public function convert_sync_page(WP_REST_Request $request): WP_REST_Response
+	{
+		$name    = $request->get_param('name');
+		$post_id = (int) $request->get_param('post_id');
+
+		if (empty($name) || 0 !== strpos($name, 'awb/')) {
+			return new WP_REST_Response(['message' => 'Invalid pattern name.'], 400);
+		}
+		if ($post_id <= 0) {
+			return new WP_REST_Response(['message' => 'Invalid post ID.'], 400);
+		}
+
+		$result = AWB_Pattern_Sync::convert_page($name, $post_id);
+		if (is_wp_error($result)) {
+			$status = 'already_synced' === $result->get_error_code() ? 409 : 500;
+			return new WP_REST_Response(['message' => $result->get_error_message()], $status);
+		}
+
+		return new WP_REST_Response([
+			'message' => __('Page synced successfully.', 'awb-starter'),
+			'reference' => AWB_Pattern_Sync::reference_markup($name),
+		], 200);
 	}
 
 	// =========================================================================

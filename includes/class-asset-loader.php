@@ -178,6 +178,22 @@ class AWB_Asset_Loader
                 ]
             ]);
 
+            $this->enqueue_script('awb-pattern-sync', 'assets/js/admin-pattern-sync.js', ['awb-starter-admin']);
+            wp_localize_script('awb-pattern-sync', 'awbPatternSync', [
+                'restUrl'     => esc_url_raw(rest_url('awb/v1/')),
+                'nonce'       => wp_create_nonce('wp_rest'),
+                'previewNonce'=> wp_create_nonce('awb_edit_pattern'),
+                'adminAjax'   => admin_url('admin-ajax.php'),
+                'i18n'        => [
+                    'copied'         => __('Copied!', 'awb-starter'),
+                    'alreadySynced'  => __('Synced', 'awb-starter'),
+                    'convert'        => __('Convert', 'awb-starter'),
+                    'converting'     => __('Converting…', 'awb-starter'),
+                    'convertConfirm' => __('This will replace the page content with a synced reference. A revision backup will be created. Continue?', 'awb-starter'),
+                    'convertError'   => __('Conversion failed.', 'awb-starter'),
+                ],
+            ]);
+
             wp_enqueue_code_editor(['type' => 'application/x-httpd-php']);
             wp_enqueue_script('wp-theme-plugin-editor');
             wp_enqueue_style('wp-codemirror');
