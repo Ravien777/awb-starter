@@ -881,6 +881,7 @@ $tabs = [
                             $usage = AWB_Pattern_Loader::get_usage_count($pattern['registered_name']);
                             $exportable_name = 'awb/' . sanitize_title($pattern['slug']);
                             $can_act = $pattern['slug'] && array_key_exists($exportable_name, AWB_Pattern_Loader::$pattern_files);
+                            $is_synced = AWB_Pattern_Sync::is_synced($exportable_name);
                             ?>
                             <div class="awb-pattern-card"
                                 data-folder="<?php echo esc_attr($pattern['folder']); ?>"
@@ -917,6 +918,16 @@ $tabs = [
                                         <?php printf(esc_html(_n('Used on %d page', 'Used on %d pages', $usage, 'awb-starter')), (int) $usage); ?>
                                     </span>
                                 <?php endif; ?>
+                                <div class="awb-pattern-card__sync">
+                                    <label class="awb-sync-toggle" title="<?php echo $is_synced ? 'Sync is ON' : 'Sync is OFF'; ?>">
+                                        <input type="checkbox"
+                                            class="awb-sync-toggle__input"
+                                            data-name="<?php echo esc_attr($exportable_name); ?>"
+                                            <?php checked($is_synced); ?>>
+                                        <span class="awb-sync-toggle__track"></span>
+                                        <span class="awb-sync-toggle__label">Sync</span>
+                                    </label>
+                                </div>
                                 <div class="awb-pattern-card__footer">
                                     <code class="awb-pattern-card__file"><?php echo esc_html($pattern['relative']); ?></code>
                                     <?php if ($pattern['slug']) : ?>
@@ -933,12 +944,36 @@ $tabs = [
                                             <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-delete-pattern" data-pattern="<?php echo esc_attr($exportable_name); ?>" title="Delete" style="color:#d63638;"><i class="fas fa-trash-alt"></i></button>
                                         <?php endif; ?>
                                     <?php endif; ?>
+                                    <?php if ($is_synced) : ?>
+                                        <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-copy-synced" data-name="<?php echo esc_attr($exportable_name); ?>" title="Copy synced embed"><i class="fas fa-link"></i> Embed</button>
+                                        <button type="button" class="awb-btn awb-btn--ghost awb-btn--sm awb-manage-sync" data-name="<?php echo esc_attr($exportable_name); ?>" data-title="<?php echo esc_attr($pattern['title']); ?>" title="Sync pages"><i class="fas fa-sync"></i> Sync</button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
                 <p class="awb-no-results" id="awb-no-results" hidden>No patterns match your search.</p>
+            </div>
+
+            <!-- ── Sync manage modal ─────────────────────────────────────── -->
+            <div class="awb-modal" id="awb-sync-modal" role="dialog" aria-modal="true" aria-labelledby="awb-sync-modal-title" hidden>
+                <div class="awb-modal__backdrop" id="awb-sync-modal-backdrop"></div>
+                <div class="awb-modal__panel awb-sync-modal__panel">
+                    <header class="awb-modal__header">
+                        <h2 class="awb-modal__title" id="awb-sync-modal-title">Manage sync</h2>
+                        <button class="awb-modal__close" id="awb-sync-modal-close" aria-label="Close">✕</button>
+                    </header>
+                    <div class="awb-modal__body awb-sync-modal__body" id="awb-sync-modal-body">
+                        <div class="awb-sync-modal__loading">Loading usages…</div>
+                        <ul class="awb-sync-modal__list" id="awb-sync-modal-list" hidden></ul>
+                        <p class="awb-sync-modal__empty" id="awb-sync-modal-empty" hidden>No usages detected for this pattern.</p>
+                    </div>
+                    <footer class="awb-modal__footer">
+                        <button class="awb-btn awb-btn--outline awb-sync-copy-embed" id="awb-sync-copy-embed">Copy embed</button>
+                        <button class="awb-btn awb-btn--primary" id="awb-sync-modal-done">Done</button>
+                    </footer>
+                </div>
             </div>
 
             <!-- ── Pattern preview modal ─────────────────────────────────── -->

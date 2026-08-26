@@ -9,7 +9,7 @@
     var cfg = window.awbPatternSync;
     if (!cfg) return;
 
-    var restBase = cfg.restUrl + 'awb/v1';
+    var restBase = cfg.restUrl;
 
     // ── Helpers ──────────────────────────────────────────────────────
 
@@ -49,27 +49,27 @@
 
                 if (checked) {
                     if (!embedBtn) {
-                        var overlay = card.querySelector('.awb-pattern-card__overlay');
-                        if (overlay) {
+                        var footer = card.querySelector('.awb-pattern-card__footer');
+                        if (footer) {
                             var copyBtn = document.createElement('button');
-                            copyBtn.className = 'awb-pattern-card__action awb-copy-synced';
+                            copyBtn.className = 'awb-btn awb-btn--ghost awb-btn--sm awb-copy-synced';
                             copyBtn.dataset.name = name;
-                            copyBtn.setAttribute('aria-label', 'Copy synced embed');
-                            copyBtn.textContent = 'Copy embed';
-                            overlay.appendChild(copyBtn);
+                            copyBtn.title = 'Copy synced embed';
+                            copyBtn.innerHTML = '<i class="fas fa-link"></i> Embed';
+                            footer.appendChild(copyBtn);
                         }
                     }
                     if (!manageBtn) {
-                        var overlay2 = card.querySelector('.awb-pattern-card__overlay');
-                        if (overlay2) {
+                        var footer2 = card.querySelector('.awb-pattern-card__footer');
+                        if (footer2) {
                             var title = card.querySelector('.awb-pattern-card__title');
                             var syncBtn = document.createElement('button');
-                            syncBtn.className = 'awb-pattern-card__action awb-manage-sync';
+                            syncBtn.className = 'awb-btn awb-btn--ghost awb-btn--sm awb-manage-sync';
                             syncBtn.dataset.name = name;
                             syncBtn.dataset.title = title ? title.textContent : '';
-                            syncBtn.setAttribute('aria-label', 'Manage sync');
-                            syncBtn.textContent = 'Sync pages';
-                            overlay2.appendChild(syncBtn);
+                            syncBtn.title = 'Sync pages';
+                            syncBtn.innerHTML = '<i class="fas fa-sync"></i> Sync';
+                            footer2.appendChild(syncBtn);
                         }
                     }
                 } else {
