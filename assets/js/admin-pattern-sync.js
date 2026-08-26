@@ -38,7 +38,7 @@
         var name = input.dataset.name;
         var checked = input.checked;
 
-        api('POST', '/patterns/' + encodeURIComponent(name) + '/sync', { synced: checked })
+        api('POST', 'patterns/' + name + '/sync', { synced: checked })
             .then(function () {
                 // Update card overlay buttons
                 var card = input.closest('.awb-pattern-card');
@@ -149,7 +149,7 @@
         syncModal.removeAttribute('hidden');
 
         // Fetch usages
-        api('GET', '/patterns/' + encodeURIComponent(name) + '/sync/usages')
+        api('GET', 'patterns/' + name + '/sync/usages')
             .then(function (data) {
                 hide(syncLoading);
                 var usages = data.usages || [];
@@ -237,7 +237,7 @@
         btn.disabled = true;
         btn.textContent = cfg.i18n.converting || 'Converting…';
 
-        api('POST', '/patterns/' + encodeURIComponent(name) + '/sync/convert', { post_id: postId })
+        api('POST', 'patterns/' + name + '/sync/convert', { post_id: postId })
             .then(function () {
                 var item = btn.closest('.awb-sync-modal__item');
                 if (item) {
